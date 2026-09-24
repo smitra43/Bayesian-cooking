@@ -6,32 +6,31 @@ A browser app: open `app/index.html`, or the published version on claude.ai.
 It runs entirely in the browser: the models are in `app/engine/`, and the
 interface is in `app/ui/app.js`.
 
-- **Kitchen:** plan a session, then approve, edit or reject each proposed
-  recipe. It gives you a cooking sheet, blind tasting codes in randomised
-  order, a tasting checklist, and result entry.
-- **Templates**, grouped into folders:
-  - Food: omelette, yeasted loaf, vinaigrette.
-  - Beverages: lemonade, masala chai, margarita. Each comes with its own
-    tasting tips, and the margarita adds alcohol limits.
-- **Logbook:** every run, with editing, CSV export and JSON import/export.
-- **Insights:** progress, factor importance, main effects, response
-  surfaces, leave-one-out model checks, standardised errors, a PCA map and
-  variance chart, parallel coordinates, correlations, the Pareto front,
-  fitted hyperparameters, and design quality.
-- **Pantry:** edit factors (number, whole number, choice, blend part),
-  blend totals, your current recipe, and outputs (from the library or
-  custom).
-- **Knobs:** every setting:
+Four sections (a bottom tab bar on phones), plus a Guide and Advanced
+settings that slide in from the header:
+
+- **Cook:** one next step at a time. Plan a session, approve or reject each
+  proposed recipe, then a guided flow: prep (cooking sheet with blind codes
+  and a short checklist), taste one sample at a time with tap-to-rate
+  buttons, and a session summary.
+- **Insights:** best recipe so far, the model's best untested guess, what
+  matters, and progress. Deeper views sit behind one switcher: main
+  effects, response surface, model check (leave-one-out and standardised
+  errors), PCA map, parallel coordinates, correlations, trade-offs, and
+  model and design details.
+- **Log:** every run, filterable, with scores editable in a side panel, plus
+  CSV export and JSON backup and import.
+- **Setup:** what you change (number, whole number, choice, blend part),
+  what you judge, your current recipe, and per-recipe tasting notes.
+  Templates are grouped into Food and Beverages folders.
+- **Advanced settings:** Balanced, Explore and Refine presets, with every
+  setting underneath:
   - Initial design: MaxPro, maximin or plain Latin hypercube, Halton, random.
-  - Model: a Gaussian process (Matérn 5/2 or 3/2, RBF, rational quadratic
-    or exponential kernel; ARD; noise; mean; output transform;
-    hyperparameter priors; optimiser settings), or Bayesian polynomial
-    regression.
-  - Input PCA, truncated by variance kept or by number of components.
-  - Acquisition: Thompson sampling, EI, UCB, PI, pure exploit or explore,
-    with a batch strategy.
-  - Candidate search, how outputs are combined into a score, and zones
-    around rejected recipes to avoid.
+  - Model: GP kernels, ARD, noise, priors and optimiser; or Bayesian
+    polynomial regression.
+  - Input PCA truncation.
+  - Acquisition function and batch strategy.
+  - Candidate search, scoring, and zones around rejected recipes to avoid.
 
 Engine tests: `node --test app/tests/engine.test.cjs`. After changing the
 engine, regenerate the example data with `node app/tools/build-example.cjs`.
