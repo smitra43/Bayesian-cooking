@@ -168,7 +168,7 @@
     if (!db) {
       state.mode = "local";
       for (const p of store.get("bc:projects", [])) state.projects[p.id] = normalize(p);
-      if (!state.projects[state.currentId]) state.currentId = pickDefault();
+      state.currentId = pickDefault(); // reopen the last experiment, not the example
       render();
       return;
     }
@@ -190,7 +190,7 @@
         if (!seen.has(id) && !(state.projects[id].example && !state.projects[id].touched) && !(writeQueue[id] && (writeQueue[id].pending || writeQueue[id].writing))) delete state.projects[id];
       }
       if (!state.projects.example && !snap.docs.some((d) => d.id === "example") && first) state.projects.example = BC.exampleProject();
-      if (!state.projects[state.currentId]) state.currentId = pickDefault();
+      if (first || !state.projects[state.currentId]) state.currentId = pickDefault();
       first = false;
       if (state.saveState !== "saving") setSave("saved");
       // Re-render unless the viewer is typing in a field.
