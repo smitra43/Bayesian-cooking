@@ -1,0 +1,83 @@
+name = "Yeasted loaf"
+batch_size = 3       # small loaves (~300 g flour) baked side by side
+initial_runs = 9
+
+# Flour blend as a mixture: always sums to 100 % of flour.
+[[factors]]
+name = "bread_flour"
+type = "component"
+group = "flour"
+kind = "composition"
+low = 50
+high = 100
+unit = "%"
+
+[[factors]]
+name = "whole_wheat"
+type = "component"
+group = "flour"
+kind = "composition"
+low = 0
+high = 50
+unit = "%"
+
+[mixtures]
+flour = 100
+
+[[factors]]
+name = "hydration_pct"
+type = "continuous"
+kind = "composition"
+low = 65
+high = 82
+unit = "% of flour"
+
+[[factors]]
+name = "salt_pct"
+type = "continuous"
+kind = "composition"
+low = 1.6
+high = 2.4
+unit = "% of flour"
+
+[[factors]]
+name = "preferment_pct"
+type = "continuous"
+kind = "composition"
+low = 0
+high = 40
+unit = "% of flour"
+
+# Bulk fermentation ends at a measured rise (small jar of dough), not a clock time.
+[[factors]]
+name = "bulk_rise_pct"
+type = "continuous"
+kind = "process"
+low = 30
+high = 100
+unit = "% rise"
+
+[[outputs]]
+name = "height_mm"
+goal = "maximize"
+low = 50
+high = 130
+unit = "mm"
+how = "Loaf height at the tallest point after 2 h cooling."
+
+[[outputs]]
+name = "crumb_open_pct"
+goal = "maximize"
+low = 5
+high = 40
+unit = "%"
+how = "Photo of the centre slice. Measure the hole area as a % of the slice (ImageJ threshold)."
+
+[[outputs]]
+name = "liking"
+goal = "maximize"
+low = 1
+high = 9
+weight = 2
+unit = "1-9"
+how = "9-point hedonic scale, tasted plain at room temperature."
