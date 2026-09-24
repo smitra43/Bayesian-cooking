@@ -1,0 +1,83 @@
+name = "Omelette"
+batch_size = 2       # more than 2-3 omelettes per sitting and every score gets noisy
+initial_runs = 8
+
+[[factors]]
+name = "eggs"
+type = "integer"
+kind = "composition"
+low = 2
+high = 4
+
+[[factors]]
+name = "dairy_g_per_egg"
+type = "continuous"
+kind = "composition"
+low = 0
+high = 15
+unit = "g"
+
+[[factors]]
+name = "salt_pct"
+type = "continuous"
+kind = "composition"
+low = 0.5
+high = 1.5
+unit = "% of egg"
+
+[[factors]]
+name = "salt_rest_min"
+type = "integer"
+kind = "process"
+low = 0
+high = 20
+unit = "min"
+
+[[factors]]
+name = "pan_temp_c"
+type = "continuous"
+kind = "process"
+low = 120
+high = 200
+unit = "°C (IR thermometer)"
+
+[[factors]]
+name = "fat"
+type = "categorical"
+kind = "composition"
+levels = ["butter", "ghee", "olive_oil"]
+
+[baseline]
+eggs = 3
+dairy_g_per_egg = 0
+salt_pct = 1.0
+salt_rest_min = 0
+pan_temp_c = 160
+fat = "butter"
+
+[[outputs]]
+name = "liking"
+goal = "maximize"
+low = 1
+high = 9
+weight = 2
+unit = "1-9"
+how = "9-point hedonic scale: 1 dislike extremely, 5 neither, 9 like extremely."
+
+[[outputs]]
+name = "texture_jar"
+goal = "target"
+target = 3
+low = 1
+high = 5
+unit = "1-5"
+how = "Just-about-right: 1 much too runny, 3 just right, 5 much too firm or rubbery."
+
+[[outputs]]
+name = "cook_loss_pct"
+goal = "minimize"
+low = 0
+high = 20
+unit = "%"
+weight = 0.5
+how = "Weigh the beaten egg mix and the finished omelette: (raw - cooked) / raw x 100."

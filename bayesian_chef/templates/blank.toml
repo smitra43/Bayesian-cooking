@@ -1,0 +1,69 @@
+name = "My experiment"
+batch_size = 4       # runs per cooking/tasting session
+initial_runs = 8     # size of the initial space-filling design (DOE)
+# candidates = 1000  # random candidates scored per proposal
+
+# ---------------------------------------------------------------- factors
+# What you vary. type = continuous | integer | categorical | component
+# kind is a free label ("composition", "process") shown in listings.
+
+[[factors]]
+name = "salt_pct"
+type = "continuous"
+kind = "composition"
+low = 0.5
+high = 2.5
+unit = "%"
+
+[[factors]]
+name = "cook_min"
+type = "integer"
+kind = "process"
+low = 5
+high = 20
+unit = "min"
+
+[[factors]]
+name = "fat"
+type = "categorical"
+kind = "composition"
+levels = ["butter", "olive_oil"]
+
+# Mixture example: components in one group always sum to the group total.
+# [[factors]]
+# name = "white_flour"
+# type = "component"
+# group = "flour"
+# low = 50
+# high = 100
+# unit = "%"
+# [[factors]]
+# name = "whole_wheat"
+# type = "component"
+# group = "flour"
+# low = 0
+# high = 50
+# unit = "%"
+# [mixtures]
+# flour = 100
+
+# Your current recipe. Optional; it is cooked first and used as a reference.
+# [baseline]
+# salt_pct = 1.5
+# cook_min = 10
+# fat = "butter"
+
+# ---------------------------------------------------------------- outputs
+# What you measure. goal = maximize | minimize | target (needs `target`)
+# low/high = expected range, used to score how good a result is.
+# weight = relative importance when trading outputs off.
+# `chef outputs` lists suggestions; `chef add-output NAME` copies one here.
+
+[[outputs]]
+name = "liking"
+goal = "maximize"
+low = 1
+high = 9
+weight = 2
+unit = "1-9"
+how = "9-point hedonic scale: 1 dislike extremely, 5 neither, 9 like extremely."

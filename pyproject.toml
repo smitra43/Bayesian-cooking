@@ -1,15 +1,25 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "sauce-lab"
+name = "bayesian-chef"
 version = "0.1.0"
-description = "Bayesian optimisation sandbox for discovering sauces"
+description = "Design of experiments and Bayesian optimisation for cooking, with a human in the loop"
 requires-python = ">=3.11"
 dependencies = ["numpy", "scipy"]
 
 [project.optional-dependencies]
 dev = ["pytest"]
 
+[project.scripts]
+chef = "bayesian_chef.cli:main"
+
 [tool.setuptools]
-packages = ["sauce_lab"]
+packages = ["bayesian_chef"]
+
+[tool.setuptools.package-data]
+bayesian_chef = ["templates/*.toml"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

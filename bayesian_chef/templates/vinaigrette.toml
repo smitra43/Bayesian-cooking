@@ -1,0 +1,64 @@
+name = "Vinaigrette"
+batch_size = 5
+initial_runs = 10
+
+[[factors]]
+name = "oil_to_acid"
+type = "continuous"
+kind = "composition"
+low = 1.0
+high = 5.0
+log = true
+unit = "ratio"
+
+[[factors]]
+name = "salt_pct"
+type = "continuous"
+kind = "composition"
+low = 0.5
+high = 3.0
+unit = "% of base"
+
+[[factors]]
+name = "mustard_pct"
+type = "continuous"
+kind = "composition"
+low = 0
+high = 12
+unit = "% of base"
+
+[[factors]]
+name = "oil"
+type = "categorical"
+kind = "composition"
+levels = ["olive", "neutral", "walnut"]
+
+[[factors]]
+name = "acid"
+type = "categorical"
+kind = "composition"
+levels = ["red_wine_vinegar", "sherry_vinegar", "lemon"]
+
+[baseline]
+oil_to_acid = 3.0
+salt_pct = 1.5
+mustard_pct = 5
+oil = "olive"
+acid = "red_wine_vinegar"
+
+[[outputs]]
+name = "liking"
+goal = "maximize"
+low = 1
+high = 9
+weight = 2
+unit = "1-9"
+how = "9-point hedonic scale, tasted on a plain lettuce leaf."
+
+[[outputs]]
+name = "separation_s"
+goal = "maximize"
+low = 0
+high = 600
+unit = "s"
+how = "Shake 30 s in a clear jar; seconds until a visible oil layer forms."
