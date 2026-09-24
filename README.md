@@ -2,7 +2,7 @@
 
 ## The app (`app/`)
 
-A browser app: open `app/index.html`, or the published version on claude.ai.
+A browser app: open `app/index.html`.
 It runs entirely in the browser: the models are in `app/engine/`, and the
 interface is in `app/ui/app.js`.
 
