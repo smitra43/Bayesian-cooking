@@ -1541,6 +1541,8 @@
   state.tab = OLD_TABS[savedTab] || savedTab;
   if (!TABS.some((t) => t.id === state.tab)) state.tab = "cook";
   state.currentId = "example";
+  // For debugging in the browser console: bcDebug.current(), bcDebug.state, bcDebug.render().
+  window.bcDebug = { state, current: cur, render, settings: () => settings(cur()) };
   render();
   connect();
 })();

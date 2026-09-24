@@ -1,132 +1,149 @@
 # Bayesian Chef
 
-## The app (`app/`)
+**Stop guessing at recipes. Run experiments on them, the way scientists design new materials.**
 
-A browser app: open `app/index.html`.
-It runs entirely in the browser: the models are in `app/engine/`, and the
-interface is in `app/ui/app.js`.
+**Try it now:** https://smitra43.github.io/Bayesian-cooking/ (works on a phone, no install)
 
-Four sections (a bottom tab bar on phones), plus a Guide and Advanced
-settings that slide in from the header:
+---
 
-- **Cook:** one next step at a time. Plan a session, approve or reject each
-  proposed recipe, then a guided flow: prep (cooking sheet with blind codes
-  and a short checklist), taste one sample at a time with tap-to-rate
-  buttons, and a session summary.
-- **Insights:** best recipe so far, the model's best untested guess, what
-  matters, and progress. Deeper views sit behind one switcher: main
-  effects, response surface, model check (leave-one-out and standardised
-  errors), PCA map, parallel coordinates, correlations, trade-offs, and
-  model and design details.
-- **Log:** every run, filterable, with scores editable in a side panel, plus
-  CSV export and JSON backup and import.
-- **Setup:** what you change (number, whole number, choice, blend part),
-  what you judge, your current recipe, and per-recipe tasting notes.
-  Templates are grouped into Food and Beverages folders.
-- **Advanced settings:** Balanced, Explore and Refine presets, with every
-  setting underneath:
-  - Initial design: MaxPro, maximin or plain Latin hypercube, Halton, random.
-  - Model: GP kernels, ARD, noise, priors and optimiser; or Bayesian
-    polynomial regression.
-  - Input PCA truncation.
-  - Acquisition function and batch strategy.
-  - Candidate search, scoring, and zones around rejected recipes to avoid.
+## The problem
 
-Engine tests: `node --test app/tests/engine.test.cjs`. After changing the
-engine, regenerate the example data with `node app/tools/build-example.cjs`.
+Say you want the perfect lemonade. You can change how much lemon goes in,
+how much sugar, which sweetener, a pinch of salt, some zest. Five knobs.
 
-## The command-line tool (`bayesian_chef/`)
+The usual approach is to change one thing at a time: fix everything, try
+more sugar, then less, pick the best, move on to lemon. It feels sensible,
+but it fails in two ways:
 
-Design of experiments and Bayesian optimisation for cooking, with you in the
-loop. You define what you vary (composition and process parameters, with
-ranges) and what you measure. The tool first plans a space-filling initial
-design, then proposes each session's runs using a model of your results. You
-approve, edit, or reject every proposal before you cook it.
+1. **Ingredients interact.** The best amount of sugar depends on how much
+   lemon you used. Changing one thing at a time can walk right past the
+   best combination and never see it.
+2. **It's slow.** Five knobs with five settings each is 5 × 5 × 5 × 5 × 5 =
+   3,125 possible lemonades. You'll taste maybe 30.
+
+So the real question is: **which 30 lemonades should you make to learn the
+most?**
+
+Scientists face the same problem when they search for a new battery
+material or drug molecule, where each experiment costs days and money. Their
+answer is **Bayesian optimisation**: build a statistical model of
+everything you've tried so far, including how *unsure* it is, and let it
+pick the next experiments that are most worth running. Bayesian Chef does
+that for your kitchen.
+
+## What it does
+
+```mermaid
+flowchart LR
+    A[Set up<br/>what you change<br/>and what you judge] --> B[Initial design<br/>spread the first recipes<br/>evenly across your ranges]
+    B --> C[Cook and taste blind<br/>score each sample]
+    C --> D[Model learns<br/>a Gaussian process fits<br/>your scores]
+    D --> E[Model proposes<br/>recipes that look good<br/>or that it's unsure about]
+    E --> F{You approve,<br/>edit or reject}
+    F --> C
+```
+
+1. **Set up.** You list the *factors* (things you change, like grams of
+   sugar or pan temperature) with the range you're willing to try, and the
+   *outputs* (things you judge, like "how much do I like it, 1 to 9").
+2. **Initial design.** The first few sessions spread recipes evenly across
+   all your ranges, so the model gets a fair look at everything.
+3. **Taste blind.** Each sample gets a random 3-digit code and a random
+   tasting order, so you can't favour the one you expect to win.
+4. **Learn.** A model (a *Gaussian process*) fits a smooth surface through
+   your scores and estimates how uncertain it is everywhere else.
+5. **Propose.** The app suggests recipes that are either predicted to be
+   great, or in areas the model knows little about. You approve, edit or
+   reject each one before cooking.
+6. **Repeat.** Every session makes the model sharper. Usually after 15 to 30
+   tastings you'll have a recipe you couldn't have found by guessing.
+
+There's a ready-made example (an omelette with 33 simulated tastings) so you
+can explore the charts before cooking anything.
 
 ## Quick start
 
+### Use it in your browser
+
+Open **https://smitra43.github.io/Bayesian-cooking/**.
+
+1. Pick **+ New experiment…** from the menu at the top and choose a
+   template. Lemonade is the quickest to test for real.
+2. Check the ranges in **Setup**.
+3. Go to **Cook**, press **Plan session 1**, approve the recipes, make them,
+   and follow the steps.
+
+Your experiments are saved in that browser. Use **Log → Back up experiment**
+to move them to another device.
+
+### Run it on your own computer
+
+You need [Git](https://git-scm.com/), and Python 3 to run a tiny local web
+server.
+
+```bash
+git clone https://github.com/smitra43/Bayesian-cooking.git
+cd Bayesian-cooking
+app/tools/build-site.sh              # builds the site into _site/
+python3 -m http.server -d _site 8000 # serves it locally
+```
+
+Then open http://localhost:8000. On Windows, run the build script in Git
+Bash.
+
+### The command-line version
+
+There's also a Python version that runs in a terminal and stores
+experiments as text files, which is handy for scripting.
+
 ```bash
 pip install -e '.[dev]'
-
-chef init omelette.toml --template omelette   # or: blank, bread, vinaigrette,
-                                              #     beverages/lemonade, beverages/chai, beverages/margarita
-# edit omelette.toml: factors, ranges, outputs
-
-chef next omelette.toml      # propose a session; approve / edit / reject each run
-# cook, taste blind in the printed order, measure
-chef record omelette.toml    # enter results (or: chef record omelette.toml 503 liking=7)
-chef status omelette.toml    # best runs, noise estimates, model's best untested guess
-chef next omelette.toml      # repeat
+chef init lemonade.toml --template beverages/lemonade
+chef next lemonade.toml      # propose a session; approve, edit or reject each recipe
+chef record lemonade.toml    # enter your scores
+chef status lemonade.toml    # best recipes so far and the model's best guess
 ```
 
-## Project file
+Other templates: `blank`, `omelette`, `bread`, `vinaigrette`,
+`beverages/chai`, `beverages/margarita`. The file format is described in the
+[code tour](docs/code-tour.md#the-python-command-line-version).
 
-```toml
-name = "Omelette"
-batch_size = 2       # runs per session
-initial_runs = 8     # initial design size before the model takes over
+## Learn more
 
-[[factors]]          # continuous | integer | categorical | component
-name = "pan_temp_c"
-type = "continuous"
-kind = "process"
-low = 120
-high = 200
+| Guide | Read it if you want to… |
+|---|---|
+| [How it works](docs/how-it-works.md) | understand the ideas: experimental design, scoring, Gaussian processes, choosing the next recipe, blind tasting. No statistics background needed. |
+| [Code tour](docs/code-tour.md) | find your way around the code, follow what happens when you press a button, or add a template, measurement or model. |
+| [Debugging guide](docs/debugging.md) | fix something that isn't working, run the tests, or read an error message. |
 
-[[factors]]
-name = "fat"
-type = "categorical"
-levels = ["butter", "ghee", "olive_oil"]
+## What's in this repository
 
-[baseline]           # optional: your current recipe, cooked first as the reference
-...
-
-[[outputs]]          # goal = maximize | minimize | target
-name = "texture_jar"
-goal = "target"
-target = 3
-low = 1
-high = 5
-weight = 1
-how = "Just-about-right: 1 much too runny, 3 just right, 5 much too firm."
+```
+app/                 the browser app (plain HTML, CSS and JavaScript, no build step)
+  index.html         page layout and all the styling
+  ui/app.js          screens, buttons, saving, charts
+  engine/            the maths: designs, models, choosing recipes, analytics
+  tests/             automated tests for the engine
+  tools/             scripts to build the website and regenerate example data
+bayesian_chef/       the Python command-line version
+  templates/         starter experiments (TOML files)
+tests/               automated tests for the Python version
+docs/                the guides linked above
+.github/workflows/   automatic testing (ci.yml) and website publishing (pages.yml)
 ```
 
-- **Mixtures:** use `type = "component"` with a shared `group`, and set the
-  group total under `[mixtures]` (e.g. `flour = 100`). Proposals always sum
-  to that total. See `bayesian_chef/templates/bread.toml`.
-- **Log scale:** set `log = true` on a factor for things like ratios, where
-  doubling matters more than adding a fixed amount.
-- **Outputs:** `chef outputs` lists suggested measures (sensory,
-  physical, practical). `chef add-output PROJECT NAME` copies one into your
-  project. Add a custom one with
-  `chef add-output PROJECT crunch --goal maximize --low 0 --high 10 --how "..."`,
-  or edit the TOML directly.
+## Checking it works
 
-## How it works
+```bash
+node --test app/tests/engine.test.cjs   # 24 tests for the app's maths (needs Node.js 18+)
+pytest -q                               # 18 tests for the Python version
+```
 
-1. **Initial design:** greedy maximin selection from a Latin-hypercube
-   pool. Each new run is as far as possible from every run already made or
-   planned, so the space is covered evenly. Your baseline recipe comes first.
-2. **Model:** one Gaussian process per output. Numeric factors are scaled to
-   [0, 1] and categorical levels are one-hot encoded, each with its own
-   lengthscale. The hyperparameters have weak priors and are fitted once an
-   output has at least 5 results.
-3. **Scoring:** each output is mapped to a 0-1 desirability using its goal
-   and range. These are combined as a weighted geometric mean, so a result
-   has to be good on every output to score well.
-4. **Proposals:** batch Thompson sampling. For each slot, a plausible
-   response surface is sampled from the model and the best candidate on it
-   is picked. This balances exploring against exploiting without any extra
-   settings.
-5. **Replicates:** every third session, one slot re-runs your best recipe so
-   far, so the tool can estimate how noisy your measurements are.
-6. **Rejections** are logged with your reason. That gives a record of
-   regions you consider infeasible.
+Both run automatically on every pull request, and every push to `main`
+republishes the website.
 
-## Tasting protocol
+## Where the ideas come from
 
-Printed with every session (`chef protocol` shows all of it). Highlights:
-no food, coffee, gum or mint for 30-60 minutes beforehand; taste when
-neither hungry nor full; blind 3-digit codes in randomised order; water and
-unsalted crackers between samples; at most 4-6 samples per session. The
-sources are listed in `bayesian_chef/guidance.py`.
+The tasting advice follows standard sensory-science practice, and the
+experimental designs come from the statistics literature. The full list is
+in [How it works](docs/how-it-works.md#sources).
