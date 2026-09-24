@@ -1,5 +1,39 @@
 # Bayesian Chef
 
+## The app (`app/`)
+
+A browser app: open `app/index.html`, or the published version on claude.ai.
+It runs entirely in the browser: the models are in `app/engine/`, and the
+interface is in `app/ui/app.js`.
+
+- **Kitchen:** plan a session, then approve, edit or reject each proposed
+  recipe. It gives you a cooking sheet, blind tasting codes in randomised
+  order, a tasting checklist, and result entry.
+- **Logbook:** every run, with editing, CSV export and JSON import/export.
+- **Insights:** progress, factor importance, main effects, response
+  surfaces, leave-one-out model checks, standardised errors, a PCA map and
+  variance chart, parallel coordinates, correlations, the Pareto front,
+  fitted hyperparameters, and design quality.
+- **Pantry:** edit factors (number, whole number, choice, blend part),
+  blend totals, your current recipe, and outputs (from the library or
+  custom).
+- **Knobs:** every setting:
+  - Initial design: MaxPro, maximin or plain Latin hypercube, Halton, random.
+  - Model: a Gaussian process (Matérn 5/2 or 3/2, RBF, rational quadratic
+    or exponential kernel; ARD; noise; mean; output transform;
+    hyperparameter priors; optimiser settings), or Bayesian polynomial
+    regression.
+  - Input PCA, truncated by variance kept or by number of components.
+  - Acquisition: Thompson sampling, EI, UCB, PI, pure exploit or explore,
+    with a batch strategy.
+  - Candidate search, how outputs are combined into a score, and zones
+    around rejected recipes to avoid.
+
+Engine tests: `node --test app/tests/engine.test.cjs`. After changing the
+engine, regenerate the example data with `node app/tools/build-example.cjs`.
+
+## The command-line tool (`bayesian_chef/`)
+
 Design of experiments and Bayesian optimisation for cooking, with you in the
 loop. You define what you vary (composition and process parameters, with
 ranges) and what you measure. The tool first plans a space-filling initial
