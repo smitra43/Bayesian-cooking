@@ -1,0 +1,15 @@
+[project]
+name = "sauce-lab"
+version = "0.1.0"
+description = "Bayesian optimisation sandbox for discovering sauces"
+requires-python = ">=3.11"
+dependencies = ["numpy", "scipy"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.setuptools]
+packages = ["sauce_lab"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

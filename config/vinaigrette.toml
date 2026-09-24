@@ -1,0 +1,44 @@
+# Search space for vinaigrette-style sauces.
+#
+# Parameterisation: the base is oil + acid, set by their weight ratio.
+# Everything else is a percentage of the base weight. Using a ratio instead
+# of raw fractions keeps the space a simple box (no sum-to-one constraint).
+
+batch_grams = 40.0      # size of each tasting sample
+candidates = 1000       # random candidates scored per proposal round
+
+[continuous]
+# log = true means the variable is searched on a log scale.
+oil_to_acid = { low = 1.0, high = 5.0, log = true }
+salt_pct    = { low = 0.5, high = 3.0 }
+sweet_pct   = { low = 0.0, high = 8.0 }   # honey
+mustard_pct = { low = 0.0, high = 12.0 }  # dijon: flavour + emulsifier
+garlic_pct  = { low = 0.0, high = 4.0 }   # grated
+accent_pct  = { low = 0.0, high = 15.0 }  # ignored when accent = "none"
+
+[categorical]
+oil    = ["olive", "neutral", "sesame_blend", "walnut"]
+acid   = ["red_wine_vinegar", "sherry_vinegar", "rice_vinegar", "apple_cider_vinegar", "lemon", "lime"]
+accent = ["none", "soy_sauce", "fish_sauce", "white_miso", "tahini", "harissa", "anchovy_paste", "gochujang"]
+
+# Every session includes this recipe. Scores are recorded relative to it,
+# which cancels out day-to-day drift in your palate.
+[control]
+oil = "olive"
+acid = "red_wine_vinegar"
+accent = "none"
+oil_to_acid = 3.0
+salt_pct = 1.5
+sweet_pct = 0.0
+mustard_pct = 5.0
+garlic_pct = 1.0
+accent_pct = 0.0
+
+# Prior mean: culinary rules of thumb, in rating points relative to the
+# control. Set a weight to 0 to switch that belief off.
+[prior]
+ratio_center = 3.0
+ratio_weight = 1.0      # points lost per doubling away from ratio_center (squared)
+salt_center = 1.5
+salt_weight = 0.5       # points lost per 1% salt away from salt_center (squared)
+sweet_weight = 0.02     # points lost per (1% sweetener)^2
