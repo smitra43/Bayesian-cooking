@@ -85,6 +85,7 @@ class Project:
     batch_size: int = 4
     initial_runs: int = 8
     candidates: int = 1000
+    tips: list[str] = field(default_factory=list)
     path: Path | None = None
 
     @classmethod
@@ -103,6 +104,7 @@ class Project:
             batch_size=cfg.get("batch_size", 4),
             initial_runs=cfg.get("initial_runs", max(6, 2 * len(factors))),
             candidates=cfg.get("candidates", 1000),
+            tips=cfg.get("tips", []),
             path=path,
         )
         p.check()

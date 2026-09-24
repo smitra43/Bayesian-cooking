@@ -303,8 +303,19 @@
         </tbody></table></div></section>` : ""}`;
   }
 
+  /** For a blend part with a batch size set, the amount to measure out. */
+  function amountOf(p, f, v) {
+    const b = f.type === "component" && p.batchAmounts && p.batchAmounts[f.group];
+    const total = b && p.mixtures[f.group];
+    if (!b || !total) return "";
+    return `${fmtNum((Number(v) / total) * b.amount, Number(v) / total * b.amount >= 10 ? 0 : 1)} ${b.unit}`;
+  }
+
   function factorRows(p, x) {
-    return `<dl class="kv">${p.factors.map((f) => `<div><dt title="${esc(nice(f.name))}">${esc(nice(f.name))}</dt><dd>${esc(fmtVal(f, x[f.name]))}<span class="faint">${esc(unitOf(f))}</span></dd></div>`).join("")}</dl>`;
+    return `<dl class="kv">${p.factors.map((f) => {
+      const amt = amountOf(p, f, x[f.name]);
+      return `<div><dt title="${esc(nice(f.name))}">${esc(nice(f.name))}</dt><dd>${amt ? `<b>${esc(amt)}</b> <span class="faint">(${esc(fmtVal(f, x[f.name]))}%)</span>` : `${esc(fmtVal(f, x[f.name]))}<span class="faint">${esc(unitOf(f))}</span>`}</dd></div>`;
+    }).join("")}</dl>`;
   }
 
   function predChips(p, preds) {
@@ -382,6 +393,7 @@
       </section>
       <details class="panel" ${store.get("bc:protocol-open", true) ? "open" : ""} data-remember="bc:protocol-open">
         <summary><h3>Before and during tasting</h3></summary>
+        ${tipsHtml(p)}
         ${protocolHtml()}
       </details>
       <section class="panel stack">
@@ -414,6 +426,12 @@
       return `<div class="field">${head}<div class="seg" role="group" aria-label="${esc(nice(o.name))}">${vals.map((k) => `<button type="button" data-act="scale" data-id="${esc(runId)}" data-o="${esc(o.name)}" data-v="${k}" aria-pressed="${String(v) === String(k)}">${k}</button>`).join("")}</div>${help}</div>`;
     }
     return `<label class="field">${head}<input type="number" step="any" id="out-${esc(runId)}-${esc(o.name)}" data-bind="draft:${esc(runId)}:${esc(o.name)}" value="${esc(v === undefined ? "" : v)}">${help}</label>`;
+  }
+
+  function tipsHtml(p) {
+    const tips = (p.tips || []).filter(Boolean);
+    if (!tips.length) return "";
+    return `<div class="tips"><h4>For ${esc(p.name)}</h4><ul>${tips.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></div>`;
   }
 
   function protocolHtml() {
@@ -881,7 +899,10 @@
             : f.type === "component" ? `<input type="text" id="f-group-${i}" data-f="${i}:group" value="${esc(f.group || "")}" placeholder="blend name, e.g. flour">` : `<span class="faint small">–</span>`}</td>
           <td><button class="btn small ghost" data-act="del-factor" data-i="${i}" aria-label="Remove ${esc(f.name)}">✕</button></td></tr>`).join("")}
         </tbody></table></div>
-        ${groups.length ? `<div class="row">${groups.map((g) => `<label class="field"><span>Blend “${esc(g)}” adds up to</span><input type="number" step="any" id="mix-${esc(g)}" data-mix="${esc(g)}" value="${esc(p.mixtures[g] ?? 100)}"></label>`).join("")}</div>` : ""}
+        ${groups.length ? `<div class="row">${groups.map((g) => { const b = (p.batchAmounts || {})[g] || {}; return `<label class="field"><span>Blend “${esc(g)}” adds up to</span><input type="number" step="any" id="mix-${esc(g)}" data-mix="${esc(g)}" value="${esc(p.mixtures[g] ?? 100)}"></label>
+          <label class="field"><span>One sample of “${esc(g)}” is</span><input type="number" step="any" id="batch-amt-${esc(g)}" data-batch="${esc(g)}:amount" value="${esc(b.amount ?? "")}" placeholder="e.g. 90"></label>
+          <label class="field"><span>in</span><input type="text" id="batch-unit-${esc(g)}" data-batch="${esc(g)}:unit" value="${esc(b.unit ?? "")}" placeholder="ml, g"></label>`; }).join("")}</div>
+          <p class="help small faint">Set a sample size to see real amounts on the cooking sheet.</p>` : ""}
       </section>
       <section class="panel stack">
         <div class="panel-head"><h3>Your current recipe</h3>
@@ -907,6 +928,10 @@
           <td style="min-width:240px"><input type="text" id="o-how-${i}" data-o="${i}:how" value="${esc(o.how || "")}"></td>
           <td><button class="btn small ghost" data-act="del-output" data-i="${i}" aria-label="Remove ${esc(o.name)}">✕</button></td></tr>`).join("")}
         </tbody></table></div>
+      </section>
+      <section class="panel stack">
+        <div class="panel-head"><h3>Recipe notes</h3><p class="muted small">Shown with the tasting checklist every session. One note per line.</p></div>
+        <textarea id="p-tips" data-p="tips" rows="4" placeholder="e.g. Chill every sample to fridge temperature before tasting.">${esc((p.tips || []).join("\n"))}</textarea>
       </section>
       <section class="panel stack">
         <div class="panel-head"><h3>Manage</h3></div>
@@ -1048,7 +1073,7 @@
           <div><h4>4 · Taste and record</h4><ul><li>Cook, label with the 3-digit codes, taste blind in the given order, record results.</li><li>Every few sessions it repeats your best recipe to check how consistent your scores are.</li></ul></div>
         </div>
       </section>
-      <section class="panel stack"><h3>Tasting protocol</h3>${protocolHtml()}</section>
+      <section class="panel stack"><h3>Tasting protocol</h3>${tipsHtml(p)}${protocolHtml()}</section>
       <section class="panel stack"><div class="panel-head"><h3>Suggested measurements</h3><p class="muted small">Add any of these to ${esc(p.name)}, or define your own in the Pantry.</p></div>
         <div class="table-wrap"><table><thead><tr><th>Output</th><th>Type</th><th>Goal</th><th>How</th><th></th></tr></thead><tbody>
         ${Object.entries(BC.OUTPUT_LIBRARY).map(([k, o]) => `<tr><td><b>${esc(nice(k))}</b></td><td>${esc(o.category)}</td><td>${esc(o.goal === "target" ? `target ${o.target}` : o.goal)}</td><td style="white-space:normal;min-width:260px">${esc(o.how)}</td>
@@ -1076,7 +1101,7 @@
     const t = BC.TEMPLATES;
     openModal(`<h3>New experiment</h3>
       <label class="field"><span>Name</span><input type="text" id="np-name" placeholder="${esc(t[state.newTemplate].name)}"></label>
-      <div class="field"><span>Start from</span><div class="template-grid">${Object.entries(t).map(([k, v]) => `<button type="button" data-act="pick-template" data-k="${k}" aria-pressed="${state.newTemplate === k}"><b>${esc(v.name)}</b><span class="small muted">${esc(v.description)}</span></button>`).join("")}</div></div>
+      ${[...new Set(Object.values(t).map((v) => v.folder))].map((folder) => `<div class="field"><span class="folder-name">${esc(folder)}</span><div class="template-grid">${Object.entries(t).filter(([, v]) => v.folder === folder).map(([k, v]) => `<button type="button" data-act="pick-template" data-k="${k}" aria-pressed="${state.newTemplate === k}"><b>${esc(v.name)}</b><span class="small muted">${esc(v.description)}</span></button>`).join("")}</div></div>`).join("")}
       <div class="row end"><button class="btn" data-act="close-modal">Cancel</button><button class="btn primary" data-act="create-project">Create</button></div>`);
   }
 
@@ -1229,6 +1254,7 @@
         save(p); render(); return;
       }
     }
+    if (t.dataset.p === "tips") { p.tips = t.value.split("\n").map((x) => x.trim()).filter(Boolean); p.touched = true; save(p); return; }
     if (t.dataset.p === "name") { p.name = t.value.trim() || p.name; p.touched = true; save(p); renderTop(); return; }
     if (t.dataset.f) {
       const [i, key] = t.dataset.f.split(":");
@@ -1253,6 +1279,13 @@
       else if (key === "group") { f.group = t.value.trim() || "blend"; if (!(f.group in p.mixtures)) p.mixtures[f.group] = 100; cleanupMixtures(p); }
       else f[key] = t.value;
       fillMissing(p); p.touched = true; save(p); render(); return;
+    }
+    if (t.dataset.batch) {
+      const [g, key] = t.dataset.batch.split(":");
+      p.batchAmounts = p.batchAmounts || {};
+      const b = (p.batchAmounts[g] = p.batchAmounts[g] || {});
+      if (key === "amount") { if (t.value === "") delete p.batchAmounts[g]; else b.amount = Number(t.value); } else b.unit = t.value.trim();
+      save(p); render(); return;
     }
     if (t.dataset.mix) { p.mixtures[t.dataset.mix] = Number(t.value); save(p); render(); return; }
     if (t.dataset.o) {

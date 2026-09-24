@@ -18,7 +18,18 @@ def bread():
 
 @pytest.mark.parametrize("name", cli.TEMPLATES)
 def test_templates_load(name):
-    Project.load(TEMPLATES / f"{name}.toml")
+    p = Project.load(TEMPLATES / f"{name}.toml")
+    if name.startswith("beverages/"):
+        assert p.tips and p.baseline
+
+
+@pytest.mark.parametrize("name", [t for t in cli.TEMPLATES if t.startswith("beverages/")])
+def test_beverage_init_and_session(name, tmp_path, capsys):
+    proj = tmp_path / "drink.toml"
+    cli.main(["init", str(proj), "--template", name])
+    cli.main(["next", str(proj), "--yes", "--seed", "0"])
+    out = capsys.readouterr().out
+    assert "TASTING ORDER" in out and "For " in out
 
 
 def test_samples_respect_bounds_and_mixtures(bread):

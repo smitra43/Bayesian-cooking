@@ -1,0 +1,139 @@
+# Margarita (Beverages). Tequila, lime, orange liqueur and agave as a blend, plus shake time and salt.
+name = "Margarita"
+batch_size = 3
+initial_runs = 10
+
+# Shown with every session plan.
+tips = [
+  "Only if you're of legal drinking age, and never before driving.",
+  "Three tasting pours of 25 ml add up to about one standard drink. Keep to 3 samples per session and spit if you can; scores drift upward as alcohol builds.",
+  "Build each drink at 90 ml, shake with the same amount of ice from the same freezer, strain, and pour 25 ml to taste.",
+  "Squeeze limes within the hour and strain; lime juice changes character fast.",
+  "Drink a glass of water and eat something plain before the session, and water between samples.",
+]
+
+[[factors]]
+name = "tequila"
+type = "component"
+group = "build"
+kind = "composition"
+low = 40
+high = 60
+unit = "% of build"
+
+[[factors]]
+name = "lime_juice"
+type = "component"
+group = "build"
+kind = "composition"
+low = 20
+high = 35
+unit = "% of build"
+
+[[factors]]
+name = "orange_liqueur"
+type = "component"
+group = "build"
+kind = "composition"
+low = 10
+high = 30
+unit = "% of build"
+
+[[factors]]
+name = "agave_syrup"
+type = "component"
+group = "build"
+kind = "composition"
+low = 0
+high = 12
+unit = "% of build"
+
+[[factors]]
+name = "tequila_type"
+type = "categorical"
+kind = "composition"
+levels = ["blanco", "reposado"]
+
+[[factors]]
+name = "liqueur_type"
+type = "categorical"
+kind = "composition"
+levels = ["triple_sec", "dry_curacao"]
+
+[[factors]]
+name = "shake_s"
+type = "continuous"
+kind = "process"
+low = 8
+high = 20
+unit = "s"
+
+[[factors]]
+name = "saline_drops"
+type = "integer"
+kind = "composition"
+low = 0
+high = 4
+unit = "drops of 20% saline"
+
+[mixtures]
+build = 100
+
+[baseline]
+tequila = 50
+lime_juice = 25
+orange_liqueur = 20
+agave_syrup = 5
+tequila_type = "blanco"
+liqueur_type = "triple_sec"
+shake_s = 12
+saline_drops = 1
+
+[[outputs]]
+name = "liking"
+goal = "maximize"
+low = 1
+high = 9
+weight = 2
+unit = "1-9"
+how = "9-point hedonic scale: 1 dislike extremely, 5 neither like nor dislike, 9 like extremely."
+
+[[outputs]]
+name = "sour_jar"
+goal = "target"
+target = 3
+low = 1
+high = 5
+weight = 1
+unit = "1-5"
+how = "Just-about-right: 1 much too little sourness, 3 just right, 5 much too much."
+
+[[outputs]]
+name = "sweet_jar"
+goal = "target"
+target = 3
+low = 1
+high = 5
+weight = 1
+unit = "1-5"
+how = "Just-about-right: 1 much too little sweetness, 3 just right, 5 much too much."
+
+[[outputs]]
+name = "strength_jar"
+goal = "target"
+target = 3
+low = 1
+high = 5
+weight = 1
+unit = "1-5"
+how = "Alcohol strength: 1 much too weak or watery, 3 just right, 5 much too boozy."
+
+[[outputs]]
+name = "dilution_pct"
+goal = "target"
+target = 25
+low = 0
+high = 50
+weight = 0.5
+unit = "%"
+how = "Shaken or stirred drinks: weigh the build before ice and the strained drink after: (after - before) / before x 100."

@@ -1,0 +1,111 @@
+# Lemonade (Beverages). Water, lemon and sugar as a blend, plus salt, zest and sweetener.
+name = "Lemonade"
+batch_size = 4
+initial_runs = 10
+
+# Shown with every session plan.
+tips = [
+  "Make 250 g of each sample and chill all of them to the same fridge temperature for at least an hour. Colder drinks taste less sweet.",
+  "Juice lemons on the day and strain the pulp; lemon juice loses its fresh aroma within hours.",
+  "Dissolve the sweetener fully (stir until the liquid is clear) before judging sweetness.",
+  "Serve 30-40 ml pours. Four samples of a sweet-sour drink is plenty per sitting.",
+]
+
+[[factors]]
+name = "water"
+type = "component"
+group = "drink"
+kind = "composition"
+low = 60
+high = 84
+unit = "% by weight"
+
+[[factors]]
+name = "lemon_juice"
+type = "component"
+group = "drink"
+kind = "composition"
+low = 8
+high = 22
+unit = "% by weight"
+
+[[factors]]
+name = "sweetener"
+type = "component"
+group = "drink"
+kind = "composition"
+low = 6
+high = 16
+unit = "% by weight"
+
+[[factors]]
+name = "sweetener_type"
+type = "categorical"
+kind = "composition"
+levels = ["cane_sugar", "honey", "agave"]
+
+[[factors]]
+name = "salt_pct"
+type = "continuous"
+kind = "composition"
+low = 0
+high = 0.15
+unit = "% of drink"
+
+[[factors]]
+name = "zest_g_per_l"
+type = "continuous"
+kind = "composition"
+low = 0
+high = 4
+unit = "g/L"
+
+[mixtures]
+drink = 100
+
+[baseline]
+water = 76
+lemon_juice = 12
+sweetener = 12
+sweetener_type = "cane_sugar"
+salt_pct = 0.05
+zest_g_per_l = 1
+
+[[outputs]]
+name = "liking"
+goal = "maximize"
+low = 1
+high = 9
+weight = 2
+unit = "1-9"
+how = "9-point hedonic scale: 1 dislike extremely, 5 neither like nor dislike, 9 like extremely."
+
+[[outputs]]
+name = "sweet_jar"
+goal = "target"
+target = 3
+low = 1
+high = 5
+weight = 1
+unit = "1-5"
+how = "Just-about-right: 1 much too little sweetness, 3 just right, 5 much too much."
+
+[[outputs]]
+name = "sour_jar"
+goal = "target"
+target = 3
+low = 1
+high = 5
+weight = 1
+unit = "1-5"
+how = "Just-about-right: 1 much too little sourness, 3 just right, 5 much too much."
+
+[[outputs]]
+name = "brix"
+goal = "target"
+target = 11
+low = 4
+high = 18
+weight = 0.5
+unit = "°Bx"
+how = "Refractometer on the finished drink. Most commercial lemonades sit around 10-12 °Bx."

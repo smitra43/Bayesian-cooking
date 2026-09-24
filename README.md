@@ -9,6 +9,10 @@ interface is in `app/ui/app.js`.
 - **Kitchen:** plan a session, then approve, edit or reject each proposed
   recipe. It gives you a cooking sheet, blind tasting codes in randomised
   order, a tasting checklist, and result entry.
+- **Templates**, grouped into folders:
+  - Food: omelette, yeasted loaf, vinaigrette.
+  - Beverages: lemonade, masala chai, margarita. Each comes with its own
+    tasting tips, and the margarita adds alcohol limits.
 - **Logbook:** every run, with editing, CSV export and JSON import/export.
 - **Insights:** progress, factor importance, main effects, response
   surfaces, leave-one-out model checks, standardised errors, a PCA map and
@@ -45,7 +49,8 @@ approve, edit, or reject every proposal before you cook it.
 ```bash
 pip install -e '.[dev]'
 
-chef init omelette.toml --template omelette   # or: blank, bread, vinaigrette
+chef init omelette.toml --template omelette   # or: blank, bread, vinaigrette,
+                                              #     beverages/lemonade, beverages/chai, beverages/margarita
 # edit omelette.toml: factors, ranges, outputs
 
 chef next omelette.toml      # propose a session; approve / edit / reject each run

@@ -19,7 +19,7 @@ chef = "bayesian_chef.cli:main"
 packages = ["bayesian_chef"]
 
 [tool.setuptools.package-data]
-bayesian_chef = ["templates/*.toml"]
+bayesian_chef = ["templates/*.toml", "templates/beverages/*.toml"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

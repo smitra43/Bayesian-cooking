@@ -1,0 +1,123 @@
+# Masala chai (Beverages). Tea, milk, sugar, spices and simmer time, per 250 ml cup.
+name = "Masala chai"
+batch_size = 3
+initial_runs = 12
+
+# Shown with every session plan.
+tips = [
+  "Eight factors is a lot for a drink you make one cup at a time. Fix any you already know (for example the tea type) in the Pantry to cut the runs needed.",
+  "Keep the pan, heat setting and lid the same every time; evaporation changes strength as much as tea weight does.",
+  "Strain and let every sample cool to about 60 °C before tasting. Hot liquid dulls sweetness and makes bitterness harder to judge.",
+  "Rinse with room-temperature water between cups. Milk fat coats the mouth, so wait a full minute.",
+]
+
+[[factors]]
+name = "tea_g"
+type = "continuous"
+kind = "composition"
+low = 2
+high = 6
+unit = "g per cup"
+
+[[factors]]
+name = "tea_type"
+type = "categorical"
+kind = "composition"
+levels = ["assam_ctc", "assam_leaf", "darjeeling"]
+
+[[factors]]
+name = "milk_pct"
+type = "continuous"
+kind = "composition"
+low = 20
+high = 60
+unit = "% of liquid"
+
+[[factors]]
+name = "sugar_g"
+type = "continuous"
+kind = "composition"
+low = 0
+high = 20
+unit = "g per cup"
+
+[[factors]]
+name = "ginger_g"
+type = "continuous"
+kind = "composition"
+low = 0
+high = 8
+unit = "g fresh, grated"
+
+[[factors]]
+name = "cardamom_pods"
+type = "integer"
+kind = "composition"
+low = 0
+high = 6
+unit = "pods, crushed"
+
+[[factors]]
+name = "cinnamon_g"
+type = "continuous"
+kind = "composition"
+low = 0
+high = 1.5
+unit = "g stick"
+
+[[factors]]
+name = "simmer_min"
+type = "continuous"
+kind = "process"
+low = 3
+high = 15
+unit = "min"
+
+[baseline]
+tea_g = 4
+tea_type = "assam_ctc"
+milk_pct = 40
+sugar_g = 10
+ginger_g = 3
+cardamom_pods = 3
+cinnamon_g = 0.5
+simmer_min = 6
+
+[[outputs]]
+name = "liking"
+goal = "maximize"
+low = 1
+high = 9
+weight = 2
+unit = "1-9"
+how = "9-point hedonic scale: 1 dislike extremely, 5 neither like nor dislike, 9 like extremely."
+
+[[outputs]]
+name = "strength_jar"
+goal = "target"
+target = 3
+low = 1
+high = 5
+weight = 1
+unit = "1-5"
+how = "Tea strength: 1 much too weak, 3 just right, 5 much too strong or bitter."
+
+[[outputs]]
+name = "spice_jar"
+goal = "target"
+target = 3
+low = 1
+high = 5
+weight = 1
+unit = "1-5"
+how = "Just-about-right spice: 1 much too little, 3 just right, 5 much too much."
+
+[[outputs]]
+name = "sweet_jar"
+goal = "target"
+target = 3
+low = 1
+high = 5
+weight = 0.5
+unit = "1-5"
+how = "Just-about-right: 1 much too little sweetness, 3 just right, 5 much too much."

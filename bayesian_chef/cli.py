@@ -24,7 +24,10 @@ from .optimize import best_guess, overall_scores, propose, space_filling
 from .project import Project, Run
 from .store import Log, Record
 
-TEMPLATES = ("blank", "omelette", "bread", "vinaigrette")
+TEMPLATES = (
+    "blank", "omelette", "bread", "vinaigrette",
+    "beverages/lemonade", "beverages/chai", "beverages/margarita",
+)
 REPLICATE_EVERY = 3  # sessions
 
 
@@ -48,7 +51,7 @@ def cmd_init(args) -> None:
     dest = Path(args.project)
     if dest.exists() and not args.force:
         sys.exit(f"{dest} already exists (use --force to overwrite).")
-    src = resources.files("bayesian_chef") / "templates" / f"{args.template}.toml"
+    src = resources.files("bayesian_chef").joinpath("templates", *f"{args.template}.toml".split("/"))
     with resources.as_file(src) as p:
         shutil.copy(p, dest)
     Project.load(dest)
@@ -181,6 +184,11 @@ def print_session(project: Project, recs: list[Record]) -> None:
     for o in project.outputs:
         goal = o.goal if o.goal != "target" else f"target {o.target:g}"
         print(f"  - {o.name} [{o.unit or 'value'}, {goal}]: {o.how}")
+    if project.tips:
+        print()
+        print(f"For {project.name}:")
+        for tip in project.tips:
+            print(f"  - {tip}")
     print()
     print(guidance.protocol_text(["60 min before", "Setup", "During"]))
 

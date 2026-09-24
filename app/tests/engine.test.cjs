@@ -170,3 +170,31 @@ test("settings advice flags ARD on little data", () => {
   const p = BC.fromTemplate("omelette");
   assert.match(BC.adviseSettings(p, { gp: { ard: true } }).join(" "), /ARD/);
 });
+
+test("every template is valid, including the Beverages folder", () => {
+  const folders = new Set(Object.values(BC.TEMPLATES).map((t) => t.folder));
+  assert.ok(folders.has("Beverages"));
+  for (const [key, t] of Object.entries(BC.TEMPLATES)) {
+    const p = BC.fromTemplate(key);
+    assert.deepEqual(BC.checkProject(p), [], key);
+    if (p.baseline) assert.deepEqual(BC.checkRun(p, p.baseline), [], `${key} baseline`);
+    for (const o of p.outputs) assert.ok(o.how, `${key}/${o.name} needs measuring instructions`);
+    if (t.folder === "Beverages") assert.ok(p.tips.length >= 3, `${key} tips`);
+  }
+});
+
+for (const key of ["lemonade", "chai", "margarita"]) {
+  test(`${key}: initial design then model picks stay valid`, () => {
+    const p = BC.fromTemplate(key);
+    p.settings = BC.mergeSettings({ ...p.settings, seed: 5, candidates: 150 });
+    const rng = BC.Rng(5);
+    for (let sess = 1; sess <= 6; sess++) {
+      for (const pr of BC.propose(p, p.settings, p.settings.batchSize, sess)) {
+        assert.deepEqual(BC.checkRun(p, pr.x), [], `${key} session ${sess}`);
+        const y = Object.fromEntries(p.outputs.map((o) => [o.name, Math.round((o.low + (o.high - o.low) * rng.uniform()) * 10) / 10]));
+        p.runs.push({ id: `R${p.runs.length + 1}`, session: sess, status: "done", phase: pr.phase, x: pr.x, y });
+      }
+    }
+    assert.ok(p.runs.some((r) => r.phase === "bo"), `${key} reached the model phase`);
+  });
+}
