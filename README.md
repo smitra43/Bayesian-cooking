@@ -1,5 +1,7 @@
 # Bayesian Chef
 
+Perfect any recipe of your choice using Bayesian Optimization!
+
 ## The app (`app/`)
 
 A browser app: open `app/index.html`.
