@@ -21,7 +21,9 @@ X = tuple[np.ndarray, np.ndarray]
 
 
 def kernel(a: X, b: X, h: dict) -> np.ndarray:
+    """Covariance between two sets of encoded runs: signal² · exp(-½ · scaled squared distance)."""
     def sqdist(p, q):
+        """Squared distances between every row of p and every row of q."""
         return ((p[:, None, :] - q[None, :, :]) ** 2).sum(-1)
 
     d = sqdist(a[0], b[0]) / h["len_num"] ** 2 + sqdist(a[1], b[1]) / h["len_cat"] ** 2
@@ -29,6 +31,7 @@ def kernel(a: X, b: X, h: dict) -> np.ndarray:
 
 
 def log_marginal_likelihood(x: X, y: np.ndarray, h: dict) -> float:
+    """How well hyperparameters `h` explain the data (higher is better); -1e10 if the matrix is unusable."""
     k = kernel(x, x, h) + (h["noise"] ** 2 + 1e-8) * np.eye(len(y))
     try:
         l = np.linalg.cholesky(k)
@@ -40,6 +43,7 @@ def log_marginal_likelihood(x: X, y: np.ndarray, h: dict) -> float:
 
 @dataclass
 class GP:
+    """A fitted Gaussian process for one output, on standardised values."""
     x: X
     z: np.ndarray       # standardised observations
     mu: float
@@ -48,6 +52,7 @@ class GP:
 
     @classmethod
     def fit(cls, x: X, y: np.ndarray) -> "GP":
+        """Standardise y, then (with 5+ points) find hyperparameters by maximum a posteriori."""
         y = np.asarray(y, dtype=float)
         mu = float(y.mean()) if len(y) else 0.0
         sd = float(y.std()) if len(y) > 1 and y.std() > 0 else 1.0
@@ -56,6 +61,7 @@ class GP:
         # With little data, stay at the prior medians rather than overfit.
         if len(y) >= 5:
             def neg_log_post(theta):
+                """Negative log posterior of log-hyperparameters `theta`, minimised by scipy."""
                 hh = dict(zip(NAMES, np.exp(theta)))
                 val = -log_marginal_likelihood(x, z, hh)
                 for (m, s), t in zip(HYPER_PRIORS.values(), theta):

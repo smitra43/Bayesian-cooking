@@ -21,64 +21,99 @@ can read basic JavaScript or Python. If a concept is unfamiliar, the
 ## 1. The big picture
 
 The app is plain HTML, CSS and JavaScript. There's no framework (no React,
-no Vue) and no build step: the browser runs the files exactly as they are.
-The only outside library is **Plotly**, for charts, loaded from a CDN.
+no Vue), no build step and no internet dependency: the browser runs the
+files exactly as they are, straight from disk if you like. The only
+third-party code is **Plotly** for charts, kept in `app/vendor/` together
+with the fonts.
 
 ```mermaid
 flowchart TB
-    subgraph Browser
-        HTML[index.html<br/>layout + styles]
-        UI[ui/app.js<br/>screens, clicks, saving, charts]
-        subgraph Engine[engine/ — the maths, attached to window.BC]
-            core[core.js<br/>random numbers, linear algebra]
+    subgraph Page[app/index.html + styles.css]
+        subgraph UI[ui/ — the interface, on window.Chef]
+            app[app.js<br/>tabs, render, start-up]
+            events[events.js<br/>clicks and typing → actions]
+            views[views/<br/>one file per screen]
+            actions[actions.js<br/>change an experiment]
+            comps[components.js<br/>reusable pieces]
+            storage[storage.js<br/>save and load]
+            state[state.js<br/>what's on screen]
+            core[core.js<br/>formatting, icons]
+        end
+        subgraph Engine[engine/ — the maths, on window.BC]
+            ecore[core.js<br/>random numbers, linear algebra]
             space[space.js<br/>factors, designs, PCA]
             models[models.js<br/>Gaussian process, regression]
             opt[optimize.js<br/>scoring, proposals]
-            ana[analytics.js<br/>charts' numbers]
+            ana[analytics.js<br/>chart numbers]
             lib[library.js<br/>templates, tasting guide]
         end
-        Store[(localStorage or<br/>artifact database)]
-        Plotly[Plotly from CDN]
     end
-    HTML --> UI
-    UI --> Engine
-    UI --> Store
-    UI --> Plotly
+    Store[(localStorage)]
+    Plotly[vendor/plotly.min.js<br/>loaded when Insights opens]
+    events --> actions --> Engine
+    views --> Engine
+    actions --> storage --> Store
+    views --> Plotly
 ```
 
-The key design rule: **the engine knows nothing about the screen**. Every
-engine function takes plain data (a project object) and returns plain data.
-That's why the engine can be tested in Node.js without a browser, and why
-all the maths bugs can be found by the test suite.
+Two rules keep this understandable:
+
+1. **The engine knows nothing about the screen.** Every engine function
+   takes plain data (an experiment object) and returns plain data. That's
+   why the engine can be tested in Node.js without a browser.
+2. **The screen is always drawn from `state`.** Nothing on screen is the
+   "real" data. Change the data, call `render()`, and the screen catches up.
 
 ### How the files connect
 
-`index.html` loads the scripts in this order, at the bottom of the file:
+`index.html` lists the scripts at the bottom, in this order:
 
 ```
-plotly (CDN) → core.js → space.js → models.js → optimize.js → analytics.js
-            → library.js → example-data.js → ui/app.js
+engine/core.js → space.js → models.js → optimize.js → analytics.js → library.js → example-data.js
+ui/core.js → state.js → storage.js → components.js → actions.js
+   → views/cook.js, insights.js, charts.js, log.js, setup.js, panels.js
+   → events.js → app.js (last: it starts the app)
 ```
 
-Each engine file starts like this:
+These are ordinary scripts, not ES modules, so the page also works when
+opened as a file (browsers block modules on `file://`). To share code
+between files, each file puts its functions on one shared object.
+
+Every **engine** file looks like this:
 
 ```js
 (function () {
   const BC = (globalThis.BC = globalThis.BC || {});
-  // ... functions ...
-  Object.assign(BC, { design, encode, ... });
+  function design(p, existing, k, rng, method) { ... }
+  Object.assign(BC, { design, encode, ... });   // publish to other files
 })();
 ```
 
-It creates (or reuses) one shared object, `BC` (Bayesian Chef), and adds
-its functions to it. Later files use earlier ones through `BC`, which is
-why the order matters: `optimize.js` needs `BC.fitGP` from `models.js`.
-`globalThis` is `window` in a browser and the global object in Node, so the
-same file works in both places.
+Every **UI** file looks like this:
+
+```js
+(function () {
+  "use strict";
+  const Chef = (window.Chef = window.Chef || {});
+  const { esc, nice, state } = Chef;   // helpers from earlier files
+  function logView(p) { ... Chef.settings(p) ... }
+  Object.assign(Chef, { logView, runSheet });
+})();
+```
+
+- `(function () { ... })();` wraps the file so its private variables don't
+  leak into other files.
+- `BC` holds the maths; `Chef` holds the interface. Type either into the
+  browser console to see everything in it.
+- Helpers from files loaded **earlier** are unpacked at the top
+  (`const { esc } = Chef`). Functions from files loaded **later** are
+  called as `Chef.render()` at the moment they're needed, by which time
+  every file has loaded. That's why load order matters, and why
+  `app/tests/site.test.cjs` checks it.
 
 ## 2. The engine, file by file
 
-### `core.js`: basic tools
+### `engine/core.js`: basic tools
 
 | Function | What it does |
 |---|---|
@@ -88,7 +123,7 @@ same file works in both places.
 | `nelderMead(f, x0)` | minimises a function without needing its slope, used to fit GP settings |
 | `mean`, `sd`, `normCdf`, `pearson` | basic statistics |
 
-### `space.js`: recipes as numbers
+### `engine/space.js`: recipes as numbers
 
 | Function | What it does |
 |---|---|
@@ -101,7 +136,7 @@ same file works in both places.
 | `designQuality(p, runs)` | closest-pair distance, worst coverage gap, strongest correlation between factors |
 | `fitPCA(X, options)` | principal component analysis with truncation by variance kept or by number of components |
 
-### `models.js`: the surrogate models
+### `engine/models.js`: the surrogate models
 
 Both models return an object with the same methods, so the rest of the
 code doesn't care which one you picked:
@@ -123,7 +158,7 @@ code doesn't care which one you picked:
   precision settings with MacKay's evidence updates.
 - `fitModel` picks one based on the settings.
 
-### `optimize.js`: scoring and proposing
+### `engine/optimize.js`: scoring and proposing
 
 | Function | What it does |
 |---|---|
@@ -150,14 +185,14 @@ flowchart TD
     G --> H[acquire: model picks]
 ```
 
-### `analytics.js`: the numbers behind the charts
+### `engine/analytics.js`: the numbers behind the charts
 
 `progress`, `mainEffects`, `surface`, `diagnostics`, `runPCA`,
 `correlations`, `pareto` and `replicates` each compute one chart's data.
 `adviseSettings` produces the warnings in Advanced settings, such as
 "ARD needs more results".
 
-### `library.js` and `example-data.js`: content
+### `engine/library.js` and `engine/example-data.js`: content
 
 - `TEMPLATES`: the starter experiments, each with a `folder` (Food or
   Beverages), factors, blends, baseline, outputs, settings and tasting
@@ -170,26 +205,43 @@ flowchart TD
 
 ## 3. The user interface
 
-Everything on screen comes from `app/ui/app.js`. It uses one simple
-pattern throughout:
+The interface lives in `app/ui/`. One pattern runs through all of it:
 
-1. **All state lives in one object**, `state`: which tab is open, the
-   projects, the proposals being reviewed, draft scores, and so on.
-2. **`render()` rebuilds the screen from `state`.** Each tab has a *view
-   function* (`cookView`, `insightsView`, `logView`, `setupView`) that
-   returns an HTML string. `render()` puts that string into `<main>`.
-3. **Clicks are handled in one place.** Buttons carry a `data-act`
-   attribute, like `<button data-act="plan">`. A single click listener on
-   the whole document reads `data-act` and runs the matching action from a
-   lookup table. This is called *event delegation*.
-4. **An action changes `state` or the project, calls `save()` if data
-   changed, then calls `render()` again.**
+1. **All state lives in one object**, `Chef.state` (`ui/state.js`): which
+   tab is open, the experiments, the proposals being reviewed, draft
+   scores, and so on.
+2. **`render()` rebuilds the screen from `state`** (`ui/app.js`). Each tab
+   has a *view function* that returns an HTML string: `cookView`,
+   `insightsView`, `logView`, `setupView`, one per file in `ui/views/`.
+   `render()` puts that string into `<main>`.
+3. **Clicks are handled in one place** (`ui/events.js`). Buttons carry a
+   `data-act` attribute, like `<button data-act="plan">`. A single click
+   listener reads `data-act` and runs the matching entry in the `ACTIONS`
+   table. This is called *event delegation*.
+4. **An action changes `state` or the experiment, calls `Chef.save()` if
+   data changed, then calls `Chef.render()`.** The actions that change an
+   experiment live in `ui/actions.js`.
 
-So to find what a button does: look up its `data-act` value in the big
-`const A = { ... }` table inside the click listener near the bottom of
-`app.js`.
+So to find what a button does: search `ui/events.js` for its `data-act`
+value.
 
-Other attributes follow the same idea:
+| File | What's in it |
+|---|---|
+| `core.js` | formatting (`fmtNum`, `nice`), HTML escaping (`esc`), icons, `toast` messages |
+| `state.js` | the `state` object, `cur()` (the open experiment), `settings(p)` |
+| `storage.js` | `save`, `connect` (load at start-up), `removeProject` |
+| `components.js` | recipe summaries, value lists, form fields, the rating question, dialogs, `offerFile` (downloads) |
+| `actions.js` | `planSession`, `startSession`, `saveResult`, `createProject`, `importFile`, renaming helpers |
+| `views/cook.js` | the Cook tab: plan card, review, Prep → Taste → Done |
+| `views/insights.js` | the Insights tab's HTML and `analyticsFor` (all the numbers, cached) |
+| `views/charts.js` | Plotly loading (`ensurePlotly`) and every chart (`drawInsights`) |
+| `views/log.js` | the Log table and the edit-a-run panel |
+| `views/setup.js` | the Setup tab and the New experiment dialog |
+| `views/panels.js` | slide-over panels: Advanced settings (with presets), Guide, a single run |
+| `events.js` | every click, typing and change handler |
+| `app.js` | tabs, `render()`, the header, start-up |
+
+Other attributes follow the same idea as `data-act`:
 
 | Attribute | Used for |
 |---|---|
@@ -199,26 +251,28 @@ Other attributes follow the same idea:
 | `data-k` | an Advanced setting, as a path like `gp.kernel` |
 | `data-ins` | Insights chart controls |
 
-Charts are drawn after each render by `drawInsights`, which only computes
-the chart for the view you've selected. Chart colours come from the CSS
-variables in `index.html` (read with `tok("--honey")` and similar), so they
+**Charts** are drawn after each render by `drawInsights`, which only
+computes the chart for the view you've selected. Plotly is 3.5 MB, so
+`ensurePlotly` loads `vendor/plotly.min.js` the first time you open
+Insights instead of on every page load. Chart colours come from the CSS
+variables in `styles.css` (read with `tok("--honey")` and similar), so they
 follow light and dark mode.
 
-**Security note:** every piece of user text goes through `esc()` before it's
-put into HTML. That stops a recipe name like `<script>` from running as
-code.
+**Security:** every piece of user text goes through `esc()` before it's put
+into HTML. That stops a recipe named `<script>` from running as code.
 
 ## 4. Following one click: "Plan session"
 
 Here's the whole journey when you press **Plan session 12**:
 
-1. The button is `<button data-act="plan">`. The click listener finds
-   `A.plan` and calls `planSession()`.
-2. `planSession` sets `state.planning = true` and renders, so you see
-   "Choosing recipes…". It then waits 30 milliseconds (`setTimeout`) so the
-   browser can actually paint that message before the heavy maths starts.
+1. The button is `<button data-act="plan">`. The click listener in
+   `ui/events.js` finds `ACTIONS.plan` and calls `Chef.planSession()`.
+2. `planSession` (`ui/actions.js`) sets `state.planning = true` and renders,
+   so you see "Choosing recipes…". It then waits 30 milliseconds
+   (`setTimeout`) so the browser can actually paint that message before the
+   heavy maths starts.
 3. It calls `BC.propose(project, settings, batchSize, 12)`.
-4. `propose` (in `optimize.js`) sees the model phase, so it calls
+4. `propose` (in `engine/optimize.js`) sees the model phase, so it calls
    `acquire`, which:
    - fits a Gaussian process per output (`fitAll` → `fitGP`),
    - builds 600 candidates (`candidatePool`),
@@ -227,14 +281,14 @@ Here's the whole journey when you press **Plan session 12**:
 5. The proposals come back as a list of `{ x: recipe, phase, why,
    predictions }`. `planSession` stores them in `state.proposals`, each
    marked "approve".
-6. `render()` runs again. Because `state.proposals` exists, `cookView`
-   shows `reviewView` instead of the plan card.
+6. `Chef.render()` runs again. Because `state.proposals` exists, `cookView`
+   (`ui/views/cook.js`) shows `reviewView` instead of the plan card.
 7. When you press **Start session**, `startSession()` turns each approved
    proposal into a **run** with `status: "planned"`, a unique 3-digit
    code, and a random tasting position (`taste`). Rejected ones become runs
    with `status: "rejected"` and your reason in `notes`.
-8. `save(project)` stores it (next section) and the Cook tab switches to
-   the Prep step.
+8. `Chef.save(project)` stores it (next section) and the Cook tab switches
+   to the Prep step.
 
 ## 5. Where your data lives
 
@@ -283,28 +337,30 @@ and **Import backup** loads one.
 
 ### Saving
 
-`save(project)` updates `updatedAt`, then:
-
-- **On GitHub Pages or your own computer:** it writes every project to the
-  browser's `localStorage` under the key `bc:projects`. That storage belongs
-  to this browser on this device, so clearing site data deletes it. Keep
-  backups.
-- **When the page runs inside claude.ai as an artifact:** `connect()` finds
-  the artifact's database through `window.claude.use("db")` and saves each
-  project as the document `projects/<id>`, with live sync across devices.
-  Writes are queued so only one write per project runs at a time.
+`save(project)` (`ui/storage.js`) updates `updatedAt`, then writes every
+experiment to the browser's `localStorage` under the key `bc:projects`.
+That storage belongs to this browser on this device (and, for a page opened
+as a file, to local files in general), so clearing site data deletes it.
+Keep backups.
 
 Two small extra keys: `bc:current` remembers the last experiment you
 opened, and `bc:tab` the last tab.
 
 The example project is never saved until you change it.
 
+**Optional claude.ai sync.** `connect()` also checks for `window.claude`,
+which only exists when the page is hosted inside claude.ai as an artifact.
+There it saves each experiment to that artifact's database
+(`projects/<id>`) and syncs across devices. Everywhere else that object
+doesn't exist, the check fails, and nothing else in the app depends on it.
+
 ## 6. Tests, CI and the website
+
+Run all the app tests with `node --test app/tests/*.test.cjs`.
 
 ### Engine tests: `app/tests/engine.test.cjs`
 
-Run with `node --test app/tests/engine.test.cjs`. The file loads the engine
-files into Node and checks, among other things:
+These load the engine files into Node and check, among other things:
 
 - the matrix maths solves equations correctly,
 - every sample and design respects ranges and blend totals,
@@ -316,6 +372,17 @@ files into Node and checks, among other things:
 - the model beats the initial design at finding a hidden best recipe,
 - every template (including all Beverages) is valid.
 
+### Page tests: `app/tests/site.test.cjs`
+
+These catch mistakes that break the page without breaking the maths:
+
+- `index.html` is a complete page (doctype, character set, viewport),
+- every file it loads exists, including Plotly and each font,
+- nothing is loaded from the internet,
+- every script parses,
+- the engine loads before the UI and `ui/app.js` is last,
+- every `Chef.something` a UI file uses is actually defined by some UI file.
+
 ### Python tests: `tests/test_chef.py`
 
 Run with `pytest -q`. They cover the command-line version, including a full
@@ -323,20 +390,18 @@ simulated plan, record and status loop.
 
 ### CI: `.github/workflows/ci.yml`
 
-On every pull request, GitHub runs both test suites on a fresh machine. A
-red ✗ on the pull request means a test failed; click **Details** to see
-which one.
+On every pull request, GitHub runs both test suites on a fresh machine
+(**Python CLI tests** and **App tests**). A red ✗ on the pull request means
+a test failed; click **Details** to see which one.
 
 ### The website: `.github/workflows/pages.yml`
 
 On every push to `main`:
 
-1. run the engine tests,
-2. run `app/tools/build-site.sh`, which copies the app into `_site/` and
-   wraps `index.html` in a complete HTML page (`<!doctype html>`, `<head>`,
-   character set, viewport). `app/index.html` doesn't have those itself
-   because it's written as page content that a host wraps, so the build
-   script adds them,
+1. run the app tests,
+2. run `app/tools/build-site.sh`, which copies what a browser needs
+   (`index.html`, `styles.css`, `engine/`, `ui/`, `vendor/`) into `_site/`,
+   leaving out `tests/` and `tools/`,
 3. publish `_site/` to GitHub Pages.
 
 ## 7. How to add things
@@ -352,6 +417,17 @@ On every push to `main`:
    `bayesian_chef/templates/` and its name to `TEMPLATES` in
    `bayesian_chef/cli.py`.
 
+### A new screen or button
+
+1. Write a view function that returns HTML in a new file under
+   `app/ui/views/`, using the same wrapper as the other files, and publish
+   it with `Object.assign(Chef, { myView })`.
+2. Add a `<script>` line for it in `index.html`, before `ui/events.js`.
+3. For a button, give it `data-act="my-action"` and add
+   `"my-action": () => { ... }` to the `ACTIONS` table in `ui/events.js`.
+4. Run `node --test app/tests/*.test.cjs`: the page tests will tell you if a
+   file is missing or a `Chef.` name is undefined.
+
 ### A new suggested measurement
 
 Add an entry to `OUTPUT_LIBRARY` in `app/engine/library.js` with a
@@ -365,7 +441,7 @@ Setup and in the Guide automatically. (For the command line, add it to
    squared scaled distance `r2` (and `alpha`, for kernels that need an extra
    setting) and must return 1 when `r2` is 0, falling towards 0 as `r2`
    grows.
-2. Add it to the kernel `<select>` in `settingsSheet` in `app/ui/app.js`.
+2. Add it to the kernel `<select>` in `settingsSheet` in `app/ui/views/panels.js`.
 3. Add its name to the kernel list in `engine.test.cjs`, so it's tested
    against a known smooth function.
 
@@ -374,7 +450,8 @@ Setup and in the Guide automatically. (For the command line, add it to
 Add a `case` to the `switch (s.acquisition)` block in `acquire`
 (`app/engine/optimize.js`). You get Monte Carlo samples of each candidate's
 overall score in `samples`; return one number where higher means "cook this
-next". Then add it to the acquisition `<select>` in `settingsSheet` and to
+next". Then add it to the acquisition `<select>` in `settingsSheet`
+(`app/ui/views/panels.js`) and to
 the acquisition test loop.
 
 ### After changing the engine

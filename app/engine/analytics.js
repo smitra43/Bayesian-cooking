@@ -2,6 +2,7 @@
 (function () {
   const BC = (globalThis.BC = globalThis.BC || {});
 
+  /** True if v is a real, finite number. */
   function valid(v) { return v !== null && v !== undefined && v !== "" && isFinite(v); }
 
   /** Score of every done run, and the running best, in run order. */

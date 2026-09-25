@@ -28,7 +28,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: node --test app/tests/engine.test.cjs
+      - run: node --test app/tests/*.test.cjs
       - run: app/tools/build-site.sh _site
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

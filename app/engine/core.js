@@ -42,10 +42,14 @@
   // Matrices are arrays of row arrays. Sizes here are small (runs <= a few
   // hundred, candidates <= a few thousand), so clarity beats cleverness.
 
+  /** An n × m matrix of zeros (array of row arrays). */
   function zeros(n, m) { return Array.from({ length: n }, () => new Array(m).fill(0)); }
+  /** The n × n identity matrix. */
   function eye(n) { const a = zeros(n, n); for (let i = 0; i < n; i++) a[i][i] = 1; return a; }
+  /** Swap rows and columns. */
   function transpose(a) { return a.length ? a[0].map((_, j) => a.map((r) => r[j])) : []; }
 
+  /** Matrix product a · b. */
   function matmul(a, b) {
     const n = a.length, k = b.length, m = k ? b[0].length : 0;
     const out = zeros(n, m);
@@ -60,7 +64,9 @@
     return out;
   }
 
+  /** Matrix-vector product a · x. */
   function matvec(a, x) { return a.map((r) => dot(r, x)); }
+  /** Dot product of two equal-length vectors. */
   function dot(x, y) { let s = 0; for (let i = 0; i < x.length; i++) s += x[i] * y[i]; return s; }
 
   /** Lower Cholesky factor of a symmetric positive-definite matrix, or null. */
@@ -97,6 +103,7 @@
     throw new Error("Matrix is not positive definite, even with jitter.");
   }
 
+  /** Solve L x = b for lower-triangular L (forward substitution). */
   function solveLower(L, b) {
     const n = L.length, x = new Array(n);
     for (let i = 0; i < n; i++) {
@@ -108,6 +115,7 @@
     return x;
   }
 
+  /** Solve Lᵀ x = b, using the lower-triangular L (back substitution). */
   function solveUpperT(L, b) { // solves L^T x = b
     const n = L.length, x = new Array(n);
     for (let i = n - 1; i >= 0; i--) {
@@ -118,6 +126,7 @@
     return x;
   }
 
+  /** Solve A x = b given A's Cholesky factor L (A = L Lᵀ). */
   function cholSolve(L, b) { return solveUpperT(L, solveLower(L, b)); }
 
   /** Inverse of an SPD matrix from its Cholesky factor. */
@@ -209,19 +218,24 @@
 
   // ------------------------------------------------------------------ stats
 
+  /** Average of a list (NaN if empty). */
   function mean(x) { return x.length ? x.reduce((a, b) => a + b, 0) / x.length : NaN; }
+  /** Sample standard deviation (0 for fewer than 2 values). */
   function sd(x) {
     if (x.length < 2) return 0;
     const m = mean(x);
     return Math.sqrt(x.reduce((a, b) => a + (b - m) ** 2, 0) / (x.length - 1));
   }
+  /** Height of the standard bell curve at z. */
   function normPdf(z) { return Math.exp(-0.5 * z * z) / Math.sqrt(2 * Math.PI); }
+  /** Probability that a standard normal value is below z (Abramowitz–Stegun approximation). */
   function normCdf(z) { // Abramowitz-Stegun 7.1.26 via erf
     const t = 1 / (1 + 0.3275911 * Math.abs(z) / Math.SQRT2);
     const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t *
       Math.exp(-(z * z) / 2);
     return z >= 0 ? 0.5 * (1 + y) : 0.5 * (1 - y);
   }
+  /** Pearson correlation between two lists (NaN if under 3 points or no variation). */
   function pearson(x, y) {
     const n = x.length; if (n < 3) return NaN;
     const mx = mean(x), my = mean(y);

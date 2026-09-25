@@ -32,6 +32,7 @@ REPLICATE_EVERY = 3  # sessions
 
 
 def ask(prompt: str, default: str = "") -> str:
+    """Prompt the user and return their answer, or `default` if they just press Enter."""
     suffix = f" [{default}]" if default else ""
     try:
         ans = input(f"{prompt}{suffix}: ").strip()
@@ -41,6 +42,7 @@ def ask(prompt: str, default: str = "") -> str:
 
 
 def describe(project: Project, run: Run, indent: str = "    ") -> str:
+    """Format a run's factor values as an indented, aligned block of text."""
     width = max(len(f.name) for f in project.factors)
     return "\n".join(f"{indent}{f.name:<{width}}  {f.fmt(run[f.name])}" for f in project.factors)
 
@@ -48,6 +50,7 @@ def describe(project: Project, run: Run, indent: str = "    ") -> str:
 # --------------------------------------------------------------------- init
 
 def cmd_init(args) -> None:
+    """`chef init`: copy a template to a new project file."""
     dest = Path(args.project)
     if dest.exists() and not args.force:
         sys.exit(f"{dest} already exists (use --force to overwrite).")
@@ -62,6 +65,7 @@ def cmd_init(args) -> None:
 # --------------------------------------------------------------------- next
 
 def cmd_next(args) -> None:
+    """`chef next`: propose the next session, let the user approve/edit/reject, then print the cooking sheet."""
     project = Project.load(args.project)
     log = Log(project)
     rng = np.random.default_rng(args.seed)
@@ -128,6 +132,7 @@ def make_proposals(project: Project, log: Log, n: int, session: int, rng) -> lis
 
 
 def approve(project: Project, proposals, log: Log, session: int, assume_yes: bool) -> list[Record]:
+    """Walk through proposals one by one; return the records the user approved (rejections are logged too)."""
     approved: list[Record] = []
     approve_all = assume_yes
     print(f"Session {session}: {len(proposals)} proposed runs.\n")
@@ -154,6 +159,7 @@ def approve(project: Project, proposals, log: Log, session: int, assume_yes: boo
 
 
 def edit_run(project: Project, run: Run) -> Run:
+    """Ask for new values for every factor until the run is valid, then return it."""
     while True:
         new = dict(run)
         for f in project.factors:
@@ -171,6 +177,7 @@ def edit_run(project: Project, run: Run) -> Run:
 
 
 def print_session(project: Project, recs: list[Record]) -> None:
+    """Print the cooking sheet, blind tasting order, what to measure, and the tasting protocol."""
     print("=" * 60)
     print("COOKING SHEET: make each run, label it only with its code")
     print("=" * 60)
@@ -196,6 +203,7 @@ def print_session(project: Project, recs: list[Record]) -> None:
 # ------------------------------------------------------------------- record
 
 def cmd_record(args) -> None:
+    """`chef record`: enter results, either interactively or as output=value pairs for one run."""
     project = Project.load(args.project)
     log = Log(project)
     names = {o.name for o in project.outputs}
@@ -249,6 +257,7 @@ def cmd_record(args) -> None:
 
 
 def find(log: Log, key: str) -> Record:
+    """Find a run by its id (R003) or its tasting code (503)."""
     for r in log.records:
         if key.lower() in (r.run_id.lower(), r.code):
             return r
@@ -258,6 +267,7 @@ def find(log: Log, key: str) -> Record:
 # ------------------------------------------------------------------- status
 
 def cmd_status(args) -> None:
+    """`chef status`: best runs so far, measurement noise, and the model's best untested guess."""
     project = Project.load(args.project)
     log = Log(project)
     done, planned, rejected = (log.by_status(s) for s in ("done", "planned", "rejected"))
@@ -299,6 +309,7 @@ def cmd_status(args) -> None:
 # ------------------------------------------------------------------ outputs
 
 def cmd_outputs(args) -> None:
+    """`chef outputs`: list the suggested measurements."""
     by_cat: dict[str, list[str]] = {}
     for name, spec in guidance.OUTPUT_LIBRARY.items():
         by_cat.setdefault(spec["category"], []).append(name)
@@ -313,6 +324,7 @@ def cmd_outputs(args) -> None:
 
 
 def cmd_add_output(args) -> None:
+    """`chef add-output`: append a suggested or custom output to the project file (reverted if it makes the file invalid)."""
     path = Path(args.project)
     spec = dict(guidance.OUTPUT_LIBRARY.get(args.name, {}))
     spec.pop("category", None)
@@ -334,12 +346,14 @@ def cmd_add_output(args) -> None:
 
 
 def cmd_protocol(args) -> None:
+    """`chef protocol`: print the full tasting protocol."""
     print(guidance.protocol_text())
 
 
 # --------------------------------------------------------------------- main
 
 def main(argv: list[str] | None = None) -> None:
+    """Parse command-line arguments and run the chosen command."""
     p = argparse.ArgumentParser(prog="chef", description="Bayesian Chef: DOE + Bayesian optimisation for cooking.")
     sub = p.add_subparsers(dest="cmd", required=True)
 

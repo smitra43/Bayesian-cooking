@@ -4,20 +4,24 @@
   const BC = (globalThis.BC = globalThis.BC || {});
   const FACTOR_TYPES = ["continuous", "integer", "categorical", "component"];
 
+  /** True for every factor type except choices. */
   function isNumeric(f) { return f.type !== "categorical"; }
 
+  /** Rescale a factor value to 0–1 across its range (on a log scale if the factor uses one). */
   function toUnit(f, v) {
     v = Number(v);
     if (f.log) return (Math.log(v) - Math.log(f.low)) / (Math.log(f.high) - Math.log(f.low));
     return f.high > f.low ? (v - f.low) / (f.high - f.low) : 0;
   }
 
+  /** The reverse of toUnit: a 0–1 position back to a real value (rounded for whole numbers). */
   function fromUnit(f, u) {
     u = Math.min(1, Math.max(0, u));
     const v = f.log ? Math.exp(Math.log(f.low) + u * (Math.log(f.high) - Math.log(f.low))) : f.low + u * (f.high - f.low);
     return f.type === "integer" ? Math.round(v) : v;
   }
 
+  /** The factors that belong to one blend. */
   function components(p, group) { return p.factors.filter((f) => f.type === "component" && f.group === group); }
 
   /** List of human-readable problems with a project definition (empty = valid). */
@@ -116,6 +120,7 @@
   }
 
   const PRIMES = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47];
+  /** The i-th number of the Halton low-discrepancy sequence in base b. */
   function halton(i, b) { let f = 1, r = 0; while (i > 0) { f /= b; r += f * (i % b); i = Math.floor(i / b); } return r; }
 
   /** Nearby run: numeric factors jittered on the unit scale, categories
@@ -156,6 +161,7 @@
       c.kind === "num" ? toUnit(byName[c.factor], x[c.factor]) : (x[c.factor] === c.level ? Math.SQRT1_2 : 0)));
   }
 
+  /** Squared straight-line distance between two encoded recipes. */
   function dist2(a, b) { let s = 0; for (let i = 0; i < a.length; i++) s += (a[i] - b[i]) ** 2; return s; }
 
   // --------------------------------------------------------------------- DOE

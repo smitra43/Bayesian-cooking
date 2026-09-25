@@ -80,18 +80,22 @@ to move them to another device.
 
 ### Run it on your own computer
 
-You need [Git](https://git-scm.com/), and Python 3 to run a tiny local web
-server.
+Everything the app needs is in this repository: no account, no install, no
+internet connection (charts and fonts are included).
+
+1. Get the code: `git clone https://github.com/smitra43/Bayesian-cooking.git`,
+   or on GitHub click **Code → Download ZIP** and unzip it.
+2. Open `app/index.html` in Chrome, Edge or Firefox (double-click it).
+
+That's it. Your experiments are saved in that browser.
+
+If your browser won't save when the page is opened as a file (some Safari
+settings block this), serve the folder instead and open
+http://localhost:8000:
 
 ```bash
-git clone https://github.com/smitra43/Bayesian-cooking.git
-cd Bayesian-cooking
-app/tools/build-site.sh              # builds the site into _site/
-python3 -m http.server -d _site 8000 # serves it locally
+python3 -m http.server -d app 8000
 ```
-
-Then open http://localhost:8000. On Windows, run the build script in Git
-Bash.
 
 ### The command-line version
 
@@ -122,10 +126,20 @@ Other templates: `blank`, `omelette`, `bread`, `vinaigrette`,
 
 ```
 app/                 the browser app (plain HTML, CSS and JavaScript, no build step)
-  index.html         page layout and all the styling
-  ui/app.js          screens, buttons, saving, charts
-  engine/            the maths: designs, models, choosing recipes, analytics
-  tests/             automated tests for the engine
+  index.html         the page: header, tab bar, and the list of scripts to load
+  styles.css         all the styling (colours, layout, dark mode)
+  engine/            the maths: designs, models, choosing recipes, analytics (window.BC)
+  ui/                the interface, one file per job (window.Chef)
+    core.js          formatting helpers, icons, messages
+    state.js         what's on screen right now
+    storage.js       saving and loading experiments
+    components.js    reusable pieces: recipe lists, form fields, dialogs, downloads
+    actions.js       things that change an experiment (plan, start, save a score…)
+    views/           one file per screen: cook, insights, charts, log, setup, panels
+    events.js        turns clicks and typing into actions
+    app.js           tabs, render(), start-up (loaded last)
+  vendor/            third-party files kept locally: Plotly (charts) and fonts
+  tests/             automated tests for the engine and the page
   tools/             scripts to build the website and regenerate example data
 bayesian_chef/       the Python command-line version
   templates/         starter experiments (TOML files)
@@ -137,8 +151,8 @@ docs/                the guides linked above
 ## Checking it works
 
 ```bash
-node --test app/tests/engine.test.cjs   # 24 tests for the app's maths (needs Node.js 18+)
-pytest -q                               # 18 tests for the Python version
+node --test app/tests/*.test.cjs   # 31 tests: the app's maths and the page itself (needs Node.js 20+)
+pytest -q                          # 18 tests for the Python version
 ```
 
 Both run automatically on every pull request, and every push to `main`
