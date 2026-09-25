@@ -47,6 +47,7 @@ PROTOCOL = {
 
 
 def protocol_text(sections: list[str] | None = None) -> str:
+    """The tasting protocol as plain text, optionally only some sections."""
     lines = []
     for title, tips in PROTOCOL.items():
         if sections and title not in sections:
@@ -145,6 +146,7 @@ OUTPUT_LIBRARY: dict[str, dict] = {
 
 
 def output_toml(name: str, spec: dict) -> str:
+    """A suggested output written as a TOML [[outputs]] block."""
     lines = ["[[outputs]]", f'name = "{name}"']
     for key in ("goal", "target", "low", "high", "weight", "unit", "how"):
         if key in spec and spec[key] is not None:

@@ -13,12 +13,14 @@ FLOOR = 0.01  # desirability floor, so one bad output doesn't zero everything
 
 
 def flat(x: tuple[np.ndarray, np.ndarray]) -> np.ndarray:
+    """Join numeric and one-hot features into one matrix."""
     return np.hstack(x)
 
 
 # ---------------------------------------------------------------- desirability
 
 def output_range(o: Output, observed: np.ndarray) -> tuple[float, float]:
+    """The low–high range used to score an output: its set range, or the range observed so far."""
     lo = o.low if o.low is not None else (float(observed.min()) if len(observed) else 0.0)
     hi = o.high if o.high is not None else (float(observed.max()) if len(observed) else 1.0)
     if hi <= lo:
@@ -58,6 +60,7 @@ def overall_scores(project: Project, results: list[dict]) -> np.ndarray:
 
 
 def observed(results: list[dict], o: Output) -> np.ndarray:
+    """Every recorded value of one output."""
     return np.array([r[o.name] for r in results if r.get(o.name) is not None], dtype=float)
 
 
@@ -85,12 +88,14 @@ def space_filling(project: Project, existing: list[Run], k: int, rng: np.random.
 
 @dataclass
 class Proposal:
+    """One proposed run plus the model's expectations for it."""
     run: Run
     score: float                                 # predicted combined desirability
     predictions: dict[str, tuple[float, float]]  # output -> (mean, sd)
 
 
 def fit_models(project: Project, results: list[dict]) -> dict[str, GP]:
+    """Fit one Gaussian process per output that has results."""
     models = {}
     for o in project.outputs:
         rows = [r for r in results if r.get(o.name) is not None]

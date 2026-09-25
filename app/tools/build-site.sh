@@ -1,31 +1,16 @@
 #!/usr/bin/env bash
-# Builds a standalone static site in _site/ for GitHub Pages.
-# app/index.html is written as page content for the claude.ai artifact host,
-# which supplies the document skeleton; here we add that skeleton ourselves.
+# Builds the static website into _site/ (used by .github/workflows/pages.yml).
+#
+# app/index.html is already a complete page, so this just copies the files a
+# browser needs and leaves out the developer-only folders (tests/, tools/).
+#
+# Usage: app/tools/build-site.sh [output-folder]    (default: _site)
 set -euo pipefail
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 out="${1:-$root/_site}"
 rm -rf "$out"
 mkdir -p "$out"
-cp -r "$root/app/engine" "$root/app/ui" "$out/"
-{
-  cat <<'HEAD'
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<style>
-:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
-body { margin: 0; }
-img { max-width: 100%; }
-[hidden] { display: none !important; }
-</style>
-</head>
-<body>
-HEAD
-  cat "$root/app/index.html"
-  printf '\n</body>\n</html>\n'
-} > "$out/index.html"
-touch "$out/.nojekyll"
+cp "$root/app/index.html" "$root/app/styles.css" "$out/"
+cp -r "$root/app/engine" "$root/app/ui" "$root/app/vendor" "$out/"
+touch "$out/.nojekyll"   # tells GitHub Pages to serve files as-is
 echo "Built $out"

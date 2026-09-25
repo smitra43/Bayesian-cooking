@@ -10,6 +10,7 @@
 
   // ------------------------------------------------------- output transforms
 
+  /** How outputs are rescaled before modelling: standardise (subtract mean, divide by spread), log then standardise, or centre only. Returns forward and inverse functions. */
   function makeTransform(y, kind) {
     if (kind === "log") {
       const pos = y.every((v) => v > 0);
@@ -212,6 +213,7 @@
 
   const BLR_DEFAULTS = { degree: 2, interactions: true, fitPrecisions: true, alpha: 1.0, beta: 4.0, transform: "standardize" };
 
+  /** For polynomial regression: turns a feature row into [1, x…, x²…, xᵢ·xⱼ…] depending on degree and interactions. */
   function basisFn(cols, degree, interactions) {
     const num = cols.map((c, i) => (c.kind === "num" ? i : -1)).filter((i) => i >= 0);
     return (x) => {
@@ -222,6 +224,7 @@
     };
   }
 
+  /** Bayesian polynomial regression: a weighted sum of basis terms with a Gaussian prior on the weights. Same interface as fitGP. */
   function fitBLR(X, y, cols, opts = {}) {
     const o = { ...BLR_DEFAULTS, ...opts };
     const tf = makeTransform(y, o.transform);
@@ -296,6 +299,7 @@
     return build(Phi, z);
   }
 
+  /** Fit whichever model family the settings choose. */
   function fitModel(X, y, cols, settings) {
     if (settings.model === "blr") return fitBLR(X, y, cols, settings.blr || {});
     return fitGP(X, y, cols, settings.gp || {});

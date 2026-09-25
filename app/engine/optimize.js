@@ -23,6 +23,7 @@
     noGo: { enabled: true, radius: 0.15, mode: "penalize", strength: 0.8 },
   };
 
+  /** Fill in any missing setting with its default (deeply, for the gp/blr/pca/noGo groups), so older saved experiments keep working. */
   function mergeSettings(s) {
     const d = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
     if (!s) return d;
@@ -31,6 +32,7 @@
     return out;
   }
 
+  /** How many runs the initial design has: the setting, or max(6, 2 × number of factors). */
   function initialRuns(p, s) { return s.initialRuns || Math.max(6, 2 * p.factors.length); }
 
   // ------------------------------------------------------------ feature maps
@@ -49,6 +51,7 @@
 
   // ----------------------------------------------------------- desirability
 
+  /** The low–high range used to score an output: its set range, or the range seen so far. */
   function outputRange(o, observed) {
     let lo = o.low !== null && o.low !== undefined && o.low !== "" ? Number(o.low) : observed.length ? Math.min(...observed) : 0;
     let hi = o.high !== null && o.high !== undefined && o.high !== "" ? Number(o.high) : observed.length ? Math.max(...observed) : 1;
@@ -56,6 +59,7 @@
     return [lo, hi];
   }
 
+  /** Rescale one output value to 0 (worst) – 1 (ideal) according to its goal. See docs/how-it-works.md, section 4. */
   function desirability(o, y, lo, hi, shape = 1) {
     let d;
     if (o.goal === "maximize") d = (y - lo) / (hi - lo);
@@ -66,6 +70,7 @@
   }
 
   const FLOOR = 0.01;
+  /** Merge per-output desirabilities into one score: weighted geometric mean (default), weighted average, or the worst one. */
   function combine(ds, ws, rule = "geometric") {
     const W = ws.reduce((a, b) => a + b, 0);
     if (rule === "arithmetic") return ds.reduce((a, d, i) => a + (ws[i] / W) * d, 0);
@@ -73,8 +78,11 @@
     return Math.exp(ds.reduce((a, d, i) => a + (ws[i] / W) * Math.log(Math.max(d, FLOOR)), 0));
   }
 
+  /** Runs that have been tasted. */
   function doneRuns(p) { return (p.runs || []).filter((r) => r.status === "done"); }
+  /** Every recorded value of one output, as numbers. */
   function observedValues(p, o) { return doneRuns(p).map((r) => r.y[o.name]).filter((v) => v !== null && v !== undefined && v !== "" && isFinite(v)).map(Number); }
+  /** outputRange for every output, keyed by output name. */
   function ranges(p) { return Object.fromEntries(p.outputs.map((o) => [o.name, outputRange(o, observedValues(p, o))])); }
 
   /** Combined desirability of a recorded run (missing outputs skipped). */
@@ -106,6 +114,7 @@
 
   // ------------------------------------------------------ candidate handling
 
+  /** Recipes the acquisition will score: mostly Latin-hypercube samples across the whole space, plus small variations of the best recipes so far. */
   function candidatePool(p, s, rng) {
     const n = Math.max(20, s.candidates);
     const nLocal = Math.round(n * s.localFraction);

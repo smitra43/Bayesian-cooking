@@ -25,6 +25,7 @@ GOALS = ("maximize", "minimize", "target")
 
 @dataclass
 class Factor:
+    """Something you change between runs (a number, whole number, choice or blend part)."""
     name: str
     type: str
     low: float = 0.0
@@ -36,12 +37,14 @@ class Factor:
     kind: str = ""  # free label: "composition", "process", ...
 
     def to_unit(self, v) -> float:
+        """Rescale a value to 0–1 across this factor's range (log scale if set)."""
         v = float(v)
         if self.log:
             return (math.log(v) - math.log(self.low)) / (math.log(self.high) - math.log(self.low))
         return (v - self.low) / (self.high - self.low) if self.high > self.low else 0.0
 
     def from_unit(self, u: float) -> float:
+        """The reverse of to_unit: a 0–1 position back to a real value."""
         if self.log:
             v = math.exp(math.log(self.low) + u * (math.log(self.high) - math.log(self.low)))
         else:
@@ -56,6 +59,7 @@ class Factor:
         return float(round(v)) if self.type == "integer" else v
 
     def fmt(self, v) -> str:
+        """Format a value with its unit for printing."""
         if self.type == "categorical":
             return str(v)
         if self.type == "integer":
@@ -65,6 +69,7 @@ class Factor:
 
 @dataclass
 class Output:
+    """Something you measure for each run, with a goal and a range used for scoring."""
     name: str
     goal: str = "maximize"
     weight: float = 1.0
@@ -77,6 +82,7 @@ class Output:
 
 @dataclass
 class Project:
+    """A whole experiment: factors, outputs, blends, baseline and settings, loaded from TOML."""
     name: str
     factors: list[Factor]
     outputs: list[Output]
@@ -90,6 +96,7 @@ class Project:
 
     @classmethod
     def load(cls, path: str | Path) -> "Project":
+        """Read and validate a project file."""
         path = Path(path)
         with open(path, "rb") as f:
             cfg = tomllib.load(f)
@@ -113,6 +120,7 @@ class Project:
     # ------------------------------------------------------------------ checks
 
     def check(self) -> None:
+        """Raise ValueError with a clear message if the project definition is invalid."""
         if not self.factors:
             raise ValueError("Project needs at least one factor.")
         if not self.outputs:
@@ -148,9 +156,11 @@ class Project:
             self.validate(self.baseline)
 
     def components(self, group: str) -> list[Factor]:
+        """The factors that belong to one blend."""
         return [f for f in self.factors if f.type == "component" and f.group == group]
 
     def validate(self, run: Run) -> None:
+        """Raise ValueError if a run breaks a range or a blend total."""
         for f in self.factors:
             if f.name not in run:
                 raise ValueError(f"missing value for {f.name}")

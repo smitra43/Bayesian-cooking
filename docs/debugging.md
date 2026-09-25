@@ -46,7 +46,7 @@ lets you type JavaScript into the running page.
 | Safari | enable **Develop** in Settings → Advanced, then `Cmd+Option+C` |
 
 Red lines are errors. The file name and line number on the right (like
-`app.js:566`) tell you where in the code it happened; click it to jump
+`actions.js:120`) tell you where in the code it happened; click it to jump
 there.
 
 Phones don't have an easy console, so reproduce the problem on a computer
@@ -54,10 +54,12 @@ when you can.
 
 ### Poking at the app from the console
 
-The app exposes two objects on purpose, so you can inspect it:
+The app exposes three objects on purpose, so you can inspect it:
 
 - **`BC`**: the whole engine (every function from `app/engine/`).
-- **`bcDebug`**: the live app.
+- **`Chef`**: the whole interface (every function from `app/ui/`), plus
+  `Chef.state`, the object everything on screen is drawn from.
+- **`bcDebug`**: shortcuts to the live app.
 
 Try these in the console:
 
@@ -70,6 +72,9 @@ bcDebug.state.tab              // which tab is open
 BC.checkProject(bcDebug.current())          // list of setup problems ([] means fine)
 BC.propose(bcDebug.current(), bcDebug.settings(), 3, 99)   // plan 3 recipes without saving
 BC.fitAll(bcDebug.current(), bcDebug.settings()).models    // the fitted models, one per output
+
+Chef.render()                               // redraw the screen from Chef.state
+Chef.state.insights.view = "check"; Chef.render()   // jump straight to an Insights view
 
 const ex = BC.exampleProject()              // a fresh copy of the omelette example to experiment on
 BC.desirability({ goal: "maximize" }, 7, 1, 9)   // → 0.75
@@ -105,7 +110,7 @@ The keys are:
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| Charts say "Charts couldn't load" | The chart library (Plotly) comes from `cdn.jsdelivr.net`. You're offline, or a school or work network blocks it. | Try another network. Everything except the charts still works. |
+| Charts say "Charts couldn't load: app/vendor/plotly.min.js is missing…" | The chart library file is missing or damaged, usually from a partial copy of the folder. | Download or clone the repository again, or check that `app/vendor/plotly.min.js` exists (about 3.5 MB). Everything except the charts still works. |
 | My experiments disappeared | You're in a different browser or a private window, you cleared site data, or you're on a different device. Browser storage belongs to one browser on one device. | Open the same browser you used before. If the data was cleared, **Log → Import backup** with your last backup. Back up regularly. |
 | "Finish setting up" on the Cook tab | Something in Setup is invalid. The message lists what. | Fix each item in Setup. Common ones: lowest ≥ highest, a choice with fewer than 2 options, a "target" output with no target. |
 | "Blend … the part ranges can't add up to 100" | The parts' lowest values add to more than the total, or their highest values add to less. | Widen the part ranges. For example, three parts with a total of 100 can't all have a lowest of 40. |
@@ -116,8 +121,10 @@ The keys are:
 | "Score at least one thing first" | You pressed save without entering any score. | Tap a rating or type a number. Use **Wasn't made** if you skipped that sample. |
 | Model fit is near 0 or negative | Too few results, or your scores are noisy. | Normal early on. Keep tasting; taste blind and consistently. Check **Palate noise**: if it's large compared with your scale, your scores vary a lot for the same recipe. |
 | "What matters" says a factor is 0% | Across the range you gave, that factor doesn't change the prediction much. | It may truly not matter, or its range is too narrow to show an effect. Consider fixing it or widening its range. |
-| Strange characters like `Â·` | The raw `app/index.html` was opened directly, so the browser guessed the wrong text encoding. | Use the website, or run `app/tools/build-site.sh` and open `_site/index.html` (see the README). |
-| Blank page | A JavaScript error stopped the app starting. | Open the console and read the first red error. Often a script file failed to load (check the Network tab for 404s). |
+| Nothing is saved when I open `index.html` as a file | Some browsers (notably Safari with certain privacy settings) don't allow saving for pages opened from disk. | Serve the folder instead: `python3 -m http.server -d app 8000`, then open http://localhost:8000. |
+| Experiments saved from the file differ from the website's | Browsers keep separate storage for each site: the file on disk, localhost and the GitHub Pages site each have their own. | Move experiments with **Log → Back up experiment** and **Import backup**. |
+| Blank page | A JavaScript error stopped the app starting, or a script file is missing. | Open the console and read the first red error. Then run `node --test app/tests/*.test.cjs`: the page tests report any missing file, broken script or undefined `Chef.` name. |
+| "Chef.something is not a function" | A UI file calls a function that isn't published on `Chef`, or calls it before the file that defines it has loaded. | Check the function ends up in that file's `Object.assign(Chef, { … })` line, and that `index.html` loads the files in the right order. The page tests check both. |
 | Red status dot: "Storage is full" | The browser or artifact storage limit is reached. | Back up, then delete old experiments in Setup. |
 
 ## 4. Running and reading the tests
@@ -127,17 +134,19 @@ after any change.
 
 ### App engine tests (JavaScript)
 
-You need [Node.js](https://nodejs.org/) 18 or newer. From the repository
+You need [Node.js](https://nodejs.org/) 20 or newer. From the repository
 folder:
 
 ```bash
-node --test app/tests/engine.test.cjs
+node --test app/tests/*.test.cjs
 ```
 
+That runs both files: `engine.test.cjs` (the maths) and `site.test.cjs`
+(the page: files exist, scripts parse, nothing loads from the internet).
 A passing run ends like this:
 
 ```
-# pass 24
+# pass 31
 # fail 0
 ```
 
@@ -178,7 +187,7 @@ recipes are proposed, regenerate it and rerun the tests:
 
 ```bash
 node app/tools/build-example.cjs
-node --test app/tests/engine.test.cjs
+node --test app/tests/*.test.cjs
 ```
 
 ## 5. Problems with GitHub (CI and the website)
@@ -186,7 +195,7 @@ node --test app/tests/engine.test.cjs
 ### A red ✗ on a pull request
 
 1. On the pull request, scroll to the checks and click **Details** next to
-   the failed one (**Python CLI tests** or **App engine tests**).
+   the failed one (**Python CLI tests** or **App tests**).
 2. Expand the red step to read the log. The failing test's name and error
    are near the bottom.
 3. Run the same command on your computer (section 4) to reproduce it, fix
@@ -198,7 +207,7 @@ node --test app/tests/engine.test.cjs
    Pages**.
 2. If it says **skipped**, the repository is private. Free accounts can only
    publish Pages from public repositories.
-3. If it failed, open it and read the red step. If the engine tests failed,
+3. If it failed, open it and read the red step. If the app tests failed,
    nothing is published, on purpose.
 4. If it succeeded but you still see the old version, your browser is
    showing a cached copy. Do a hard refresh: `Ctrl+Shift+R` (Windows) or

@@ -67,6 +67,7 @@
     "Joseph, Gul & Ba (2015), Biometrika 102:371-380 (MaxPro designs)",
   ];
 
+  /** Copy a suggested output from OUTPUT_LIBRARY, optionally overriding some fields. */
   function out(name, extra = {}) { const { category, ...o } = OUTPUT_LIBRARY[name]; return { name, ...o, ...extra }; }
 
   const TEMPLATES = {
@@ -191,8 +192,10 @@
     },
   };
 
+  /** A short random id for a new experiment. */
   function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); }
 
+  /** A new, empty experiment built from TEMPLATES[key], with default settings filled in. */
   function fromTemplate(key, name) {
     const t = JSON.parse(JSON.stringify(TEMPLATES[key]));
     const now = new Date().toISOString();
@@ -208,6 +211,7 @@
     return simulateExample();
   }
 
+  /** Build the example omelette by simulating 11 sessions against a made-up "true taste" function, with noise. Slow, so build-example.cjs saves the result. */
   function simulateExample() {
     const p = fromTemplate("omelette", "Example: Sunday omelette");
     p.id = "example"; p.example = true;
