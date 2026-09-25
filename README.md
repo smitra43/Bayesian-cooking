@@ -1,5 +1,7 @@
 # Bayesian Chef
 
+Perfect any recipe of your choice using Bayesian Optimization!
+
 **Stop guessing at recipes. Run experiments on them, the way scientists design new materials.**
 
 **Try it now:** https://smitra43.github.io/Bayesian-cooking/ (works on a phone, no install)
